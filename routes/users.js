@@ -1,42 +1,68 @@
 var express = require('express');
+var fileUpload = require("express-fileupload")
 var router = express.Router();
 var sha1 = require("sha1");
 //var JWT=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
 //var midleware=require("./midleware");
 
+router.use(fileUpload({
+    fileSize: 5 * 1024 * 1024
+}));
+
 /*        POST users       */
+
 router.post("/", async(req, res) => {
-  var obj={};
-var userRest = req.body;
-  if (userRest.password == null) {
-    res.status(300).json({msn: "El password es necesario pra continuar con el registro"});
-    return;
-}
-if ((userRest.password.length < 6)) {
-    res.status(300).json({msn: "passwword debe tener almenos 6 caracteres"});
-    return;
-}
-if (!/[A-Z]+/.test(userRest.password)) {
-    res.status(300).json({msn: "El password necesita una letra Mayuscula"});
-    
-    return;
-}
-/*if (!/[\!\"\=\?\¡\¿\$\^\@\&\(\)\{\}\#]+/.test(userRest.password)) {
-    res.status(300).json({msn: "Necesita un caracter especial"});
-    return;
-}*/
-userRest.password = sha1(userRest.password);
-obj=userRest;
-var userDB = new USERS(obj);
-userDB.save((err, docs) => {
-    if (err) {
-        res.status(300).json(err);
+    //img user datos
+    var img=req.files.file;
+    var imgU = {};
+    var path= __dirname.replace(/\/routes/g, "/img");
+    var date =new Date();
+    var sing  =sha1(date.toString()).substr(1,12);
+    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
+    img.mv(totalpath, async(err) => {
+        if (err) {
+            return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
+        }
+        console.log(totalpath);
+        //imgU["relativepath"] = "/api/1.0/getfile/?id=" + obj["hash"];
+       
+    });
+    // user datos
+    var obj={};
+    var userRest = req.body;
+    if (userRest.password == null) {
+        res.status(300).json({msn: "El password es necesario pra continuar con el registro"});
         return;
     }
-    res.json(docs);
-    return;
-});
+    if ((userRest.password.length < 6)) {
+        res.status(300).json({msn: "passwword debe tener almenos 6 caracteres"});
+        return;
+    }
+    if (!/[A-Z]+/.test(userRest.password)) {
+        res.status(300).json({msn: "El password necesita una letra Mayuscula"});
+        
+        return;
+    }
+    /*if (!/[\!\"\=\?\¡\¿\$\^\@\&\(\)\{\}\#]+/.test(userRest.password)) {
+        res.status(300).json({msn: "Necesita un caracter especial"});
+        return;
+    }*/
+    userRest.password = sha1(userRest.password);
+    obj=userRest;
+    //ingresando img a V
+    imgU["titulo"] = sing;
+    imgU["pathfile"] = totalpath;
+    obj["img_user"]=imgU;
+    var userDB = new USERS(obj);
+    userDB.save((err, docs) => {
+        if (err) {
+            res.status(300).json(err);
+            return;
+        }
+        res.json(docs);
+        return;
+    });
 });
 
 /*        POST users login       */
