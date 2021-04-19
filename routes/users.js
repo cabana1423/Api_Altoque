@@ -2,12 +2,14 @@ var express = require('express');
 var fileUpload = require("express-fileupload")
 var router = express.Router();
 var sha1 = require("sha1");
+const fs = require('fs')
 //var JWT=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
 //var midleware=require("./midleware");
 
 router.use(fileUpload({
-    fileSize: 5 * 1024 * 1024
+    fileSize: 1 * 1024 * 1024,
+    abortOnLimit: true
 }));
 
 /*        POST users       */
@@ -15,7 +17,6 @@ router.use(fileUpload({
 router.post("/", async(req, res) => {
     //img user datos
     var img=req.files.file;
-    var imgU = {};
     var path= __dirname.replace(/\/routes/g, "/img");
     var date =new Date();
     var sing  =sha1(date.toString()).substr(1,12);
@@ -30,16 +31,16 @@ router.post("/", async(req, res) => {
     });
     // user datos
     var obj={};
-    var userRest = req.body;
-    if (userRest.password == null) {
+    var userInfo = req.body;
+    if (userInfo.password == null) {
         res.status(300).json({msn: "El password es necesario pra continuar con el registro"});
         return;
     }
-    if ((userRest.password.length < 6)) {
+    if ((userInfo.password.length < 6)) {
         res.status(300).json({msn: "passwword debe tener almenos 6 caracteres"});
         return;
     }
-    if (!/[A-Z]+/.test(userRest.password)) {
+    if (!/[A-Z]+/.test(userInfo.password)) {
         res.status(300).json({msn: "El password necesita una letra Mayuscula"});
         
         return;
@@ -48,12 +49,9 @@ router.post("/", async(req, res) => {
         res.status(300).json({msn: "Necesita un caracter especial"});
         return;
     }*/
-    userRest.password = sha1(userRest.password);
-    obj=userRest;
-    //ingresando img a V
-    imgU["titulo"] = sing;
-    imgU["pathfile"] = totalpath;
-    obj["img_user"]=imgU;
+    userInfo.password = sha1(userInfo.password);
+    obj=userInfo;
+    obj["img_user"]=[{"titulo":sing+ "_" +img.name,"pathfile":totalpath}];
     var userDB = new USERS(obj);
     userDB.save((err, docs) => {
         if (err) {
@@ -145,10 +143,6 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    else{
-
-    }
-    
     if(bodydata.password!=null){
         if ((bodydata.password.length < 6)) {
             res.status(300).json({msn: "passwword debe tener almenos 6 caracteres"});
@@ -169,6 +163,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             updateobjectdata[keys[i]] = bodydata[keys[i]];
         }
     }
+    console.log(updateobjectdata);
     USERS.update({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
@@ -179,12 +174,56 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 
 });
 
+ /*        PUT img users      */
+
+ router.put("/put-img",/*midleware,*/ async(req, res) => {
+    var params = req.query;
+    if (params.id == null) {
+        res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }//eliminando img
+    var user=await USERS.find({_id:params.id});
+    var titulo=user[0].img_user[0].titulo;
+    try {
+        fs.unlinkSync('./img/'+titulo)
+        console.log('File removed')
+      } catch(err) {
+        console.error('Something wrong happened removing the file', err)
+      }
+    //new img
+    var img=req.files.file;
+    var path= __dirname.replace(/\/routes/g, "/img");
+    var date =new Date();
+    var sing  =sha1(date.toString()).substr(1,12);
+    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
+    img.mv(totalpath, async(err) => {
+        if (err) {
+            return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
+        }
+        console.log(totalpath);  
+    });
+    USERS.update({_id:  params.id}, {$set: {"img_user":[{"titulo":sing+ "_" +img.name,"pathfile":totalpath}]}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         } 
+         res.status(200).json(docs);
+     });
+
+});
+
 /*        GET users por id      */
 
-router.get("/id",/*midleware,*/ (req, res) => {
+router.get("/id",/*midleware,*/ async(req, res) => {
 
     var params= req.query;
-    var user=USERS.find({_id:params.id});
+    if (params.id == null) {
+        res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }
+    var user2 =await USERS.find({"img_user._id":"607cf8571a18770134ff643a"});
+    console.log(user2);
+    var user= USERS.find({_id:params.id});
     user.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});

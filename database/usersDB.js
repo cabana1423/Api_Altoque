@@ -32,10 +32,10 @@ var USERSCHEMA = new mongoose.Schema({
         type: Date,
         default: new Date()
     },
-    img_user:{
+    img_user:/*{
         type:Array,
         default:[]
-    }/*[{
+    }*/[{
         titulo:
         {
             type:String,
@@ -44,12 +44,12 @@ var USERSCHEMA = new mongoose.Schema({
         pathfile: {
             type: String,
             required: [true, "la ruta de la imagen es necesaria"]
-        },
-        relativepath: {
-            type: String,
         }
+        //relativepath: {
+          //  type: String,
+        //}
 
-    }]*/
+    }]
 
     /*limite:{
         type:Number,
