@@ -56,6 +56,12 @@ router.post("/", async(req, res) => {
     userDB.save((err, docs) => {
         if (err) {
             res.status(300).json(err);
+            try {
+                fs.unlinkSync('./img/'+sing+ "_" +img.name)
+                console.log('File removed')
+              } catch(err) {
+                console.error('error File removed', err)
+              }
             return;
         }
         res.json(docs);
@@ -221,8 +227,6 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var user2 =await USERS.find({"img_user._id":"607cf8571a18770134ff643a"});
-    console.log(user2);
     var user= USERS.find({_id:params.id});
     user.exec((err, docs)=>{
         if(err){
@@ -232,6 +236,21 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(200).json(docs);
         return;
     });
+});
+router.get("/get_img"/*,midleware*/, async(req, res, next)=>{
+    var params=req.query;
+    if(params.id==null){
+        res.status(300).json({msn: "error es necesario una ID"});
+        return;
+    }
+    var idimg = params.id ;
+    var imagen=await USERS.find({"img_user._id": idimg});
+    if(imagen.length==1){
+        res.json(imagen[0].img_user[0].pathfile);
+        return;
+    }
+    res.status(300).json({msn: "error en la peticion"});
+    return;
 });
 
 module.exports = router;
