@@ -1,8 +1,8 @@
 var express = require("express");
 var router = express.Router();
 var fileUpload = require("express-fileupload")
+var PRODUC = require("../database/productosDB");
 var PROP = require("../database/propiedadDB");
-var USERS = require("../database/usersDB");
 var sha1 = require("sha1");
 const fs = require('fs');
 //var midleware=require("./midleware");
@@ -11,24 +11,24 @@ router.use(fileUpload({
     abortOnLimit: true
 }));
 
-//  POST prop
-
+//      POST    producto
 router.post("/", /*midleware,*/ async(req, res) => {
     var params = req.query;
-    var pr=req.body;
+    obj = req.body;
     if (params.id == null) {
-        res.status(300).json({msn: "El id usuario es necesario"});
-             return;
-    }
-    // validando usuraio
-    var users=await USERS.find({_id:params.id});
-    if(users.length==0){
-        res.status(300).json({msn: "el usuario no existe"});
+        res.status(300).json({msn: "ID de propiedad es necesaria"});
         return;
     }
-        //imagen up
+    var prop=await PROP.find({_id:params.id});
+    if(prop.length==1){
+        obj["id_user"]=prop[0].id_user;
+    }
+    else{
+        res.status(300).json({msn: "la propiedad no existe"});
+        return;
+    }
     var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_prop");
+    var path= __dirname.replace(/\/routes/g, "/img_produc");
     var date =new Date();
     var sing  =sha1(date.toString()).substr(1,12);
     var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
@@ -36,13 +36,10 @@ router.post("/", /*midleware,*/ async(req, res) => {
     if(img.size>tamaño){
         return res.status(300).send({msn : "el archivo es muy grande"});
     }
-            //prop up
-    obj = req.body;
-    obj["hubicacion"]=[{"lat":pr.lat,"lon":pr.lon,"calle":pr.calle}];
-    obj["img_prop"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
-    obj["id_user"]=params.id;
-    var propDB = new PROP(obj);
-    propDB.save((err, docs) => {
+    obj["img_produc"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
+    obj["id_prop"]=params.id;
+    var producDB = new PRODUC(obj);
+    producDB.save((err, docs) => {
         if (err) {
             res.status(300).json(err);
             return;
@@ -57,8 +54,8 @@ router.post("/", /*midleware,*/ async(req, res) => {
     });
 
 });
-/*        GET prop      */
 
+/*        GET prop      */
 router.get("/",/*midleware,*/ (req, res) => {
     var filter={};
     var params= req.query;
@@ -68,8 +65,8 @@ router.get("/",/*midleware,*/ (req, res) => {
         var expresion =new RegExp(params.nombre);
         filter["nombre"]=expresion;
     }if(params.id_u!=null){
-        var expresion =new RegExp(params.id_u);
-        filter["id_user"]=expresion;
+        var expresion =new RegExp(params.id_p);
+        filter["id_prop"]=expresion;
     }
     if(params.filters!=null){
         select=params.filters.replace(/,/g, " ");
@@ -81,10 +78,10 @@ router.get("/",/*midleware,*/ (req, res) => {
     }
     //console.log(filter);
     //console.log("es estes"+select);
-    var propDB=PROP.find(filter).
+    var producDB=PRODUC.find(filter).
     select(select).
     sort(order);
-    propDB.exec((err, docs)=>{
+    producDB.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
@@ -93,29 +90,28 @@ router.get("/",/*midleware,*/ (req, res) => {
         return;
     });
   });
-  /*        DELETE prop      */
 
-router.delete("/",/*midleware,*/ async(req, res) => {
+  /*        DELETE prop      */
+  router.delete("/",/*midleware,*/ async(req, res) => {
     if (req.query.id == null) {
         res.status(300).json({
         msn: "no existe id"
         });
         return;
     }
-    var propiedad=await PROP.find({_id:req.query.id});
-    var titulo=propiedad[0].img_prop[0].titulo;
-    var r = await PROP.remove({_id: req.query.id});
+    var producto=await PRODUC.find({_id:req.query.id});
+    var titulo=producto[0].img_produc[0].titulo;
+    var r = await PRODUC.remove({_id: req.query.id});
     try {
-        fs.unlinkSync('./img_prop/'+titulo)
+        fs.unlinkSync('./img_produc/'+titulo)
         console.log('File removed')
       } catch(err) {
         console.error('Something wrong happened removing the file', err)
-      } 
+      }
     res.status(300).json(r);
 });
-    
- /*        PUT prop      */
 
+    /*        PUT prop      */
  router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
@@ -123,7 +119,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["nombre","nit","propietario","telefono"];
+    var allowkeylist = ["nombre","precio","descripcion"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -131,10 +127,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             updateobjectdata[keys[i]] = bodydata[keys[i]];
         }
     }
-    /*if(bodydata.calle!=null){
-        updateobjectdata["hubicacion"]=[{"calle":bodydata.calle,"lat":bodydata.lat,"lon":bodydata.lon}];
-    }*/
-    PROP.update({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
+    PRODUC.update({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
             return;
@@ -144,23 +137,22 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 
 });
 
- /*        PUT img propiedades      */
-
- router.put("/put-img",/*midleware,*/ async(req, res) => {
+/*        PUT img PRODUCTOS      */
+router.put("/put-img",/*midleware,*/ async(req, res) => {
     var params = req.query;
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
-    }
-    var propiedad=await PROP.find({_id:params.id});
-    var titulo=propiedad[0].img_prop[0].titulo;
+    }//eliminando img
+    var producto=await PRODUC.find({_id:params.id});
+    var titulo=producto[0].img_produc[0].titulo;
     //new img
     var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_prop");
+    var path= __dirname.replace(/\/routes/g, "/img_produc");
     var date =new Date();
     var sing  =sha1(date.toString()).substr(1,12);
     var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    PROP.update({_id:  params.id}, {$set: {"img_prop":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
+    PRODUC.update({_id:  params.id}, {$set: {"img_produc":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
@@ -171,29 +163,23 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             } 
         });
          try {
-            fs.unlinkSync('./img_prop/'+titulo)
+            fs.unlinkSync('./img_produc/'+titulo)
             console.log('File removed')
           } catch(err) {
             console.error('Something wrong happened removing the file', err)
-          } 
+          }
          res.status(200).json(docs);
      });
 
 });
-
-/*        GET prop por id      */
-
 router.get("/id",/*midleware,*/ async(req, res) => {
-
     var params= req.query;
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var idimg = params.id ;
-    var imagen=await PROP.find({"img_prop._id": idimg});
-    var prop= PROP.find({_id:params.id});
-    prop.exec((err, docs)=>{
+    var produc= PRODUC.find({_id:params.id});
+    produc.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
@@ -202,22 +188,4 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     });
 });
-
-// observaciones talves se elimine
-router.get("/get_img"/*,midleware*/, async(req, res, next)=>{
-    var params=req.query;
-    if(params.id==null){
-        res.status(300).json({msn: "error es necesario una ID"});
-        return;
-    }
-    var idimg = params.id ;
-    var imagen=await PROP.find({"img_prop._id": idimg});
-    if(imagen.length==1){
-        res.json(imagen[0].img_prop[0].pathfile);
-        return;
-    }
-    res.status(300).json({msn: "error en la peticion"});
-    return;
-});
-
 module.exports = router;

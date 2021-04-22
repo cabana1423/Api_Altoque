@@ -51,5 +51,5 @@ var PROP_SCHEMA = new mongoose.Schema({
         }
 
 });
-var PROP = mongoose.model("restaurant", PROP_SCHEMA);
+var PROP = mongoose.model("propiedad", PROP_SCHEMA);
 module.exports = PROP;

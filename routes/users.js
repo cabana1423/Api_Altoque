@@ -21,14 +21,10 @@ router.post("/", async(req, res) => {
     var date =new Date();
     var sing  =sha1(date.toString()).substr(1,12);
     var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    img.mv(totalpath, async(err) => {
-        if (err) {
-            return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-        }
-        console.log(totalpath);
-        //imgU["relativepath"] = "/api/1.0/getfile/?id=" + obj["hash"];
-       
-    });
+    const tamaño=1500000;
+    if(img.size>tamaño){
+        return res.status(300).send({msn : "el archivo es muy grande"});
+    }
     // user datos
     var obj={};
     var userInfo = req.body;
@@ -51,19 +47,20 @@ router.post("/", async(req, res) => {
     }*/
     userInfo.password = sha1(userInfo.password);
     obj=userInfo;
-    obj["img_user"]=[{"titulo":sing+ "_" +img.name,"pathfile":totalpath}];
+    obj["img_user"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
     var userDB = new USERS(obj);
     userDB.save((err, docs) => {
         if (err) {
             res.status(300).json(err);
-            try {
-                fs.unlinkSync('./img/'+sing+ "_" +img.name)
-                console.log('File removed')
-              } catch(err) {
-                console.error('error File removed', err)
-              }
             return;
         }
+        img.mv(totalpath, async(err) => {
+            if (err) {
+                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
+            }
+            console.log(totalpath);
+            //imgU["relativepath"] = "/api/1.0/getfile/?id=" + obj["hash"];
+        });
         res.json(docs);
         return;
     });
@@ -136,9 +133,17 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         });
         return;
     }
-        var r = await USERS.remove({_id: req.query.id});
-        res.status(300).json(r);
-    });
+    var user=await USERS.find({_id:req.query.id});
+    var titulo=user[0].img_user[0].titulo;
+    var r = await USERS.remove({_id: req.query.id});
+    try {
+        fs.unlinkSync('./img/'+titulo)
+        console.log('File removed')
+      } catch(err) {
+        console.error('Snot file removed', err)
+      }
+    res.status(300).json(r);
+});
 
  /*        PUT users      */
 
@@ -187,32 +192,33 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
-    }//eliminando img
+    }//eliminando img part 1
     var user=await USERS.find({_id:params.id});
     var titulo=user[0].img_user[0].titulo;
-    try {
-        fs.unlinkSync('./img/'+titulo)
-        console.log('File removed')
-      } catch(err) {
-        console.error('Something wrong happened removing the file', err)
-      }
     //new img
     var img=req.files.file;
     var path= __dirname.replace(/\/routes/g, "/img");
     var date =new Date();
     var sing  =sha1(date.toString()).substr(1,12);
     var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    img.mv(totalpath, async(err) => {
-        if (err) {
-            return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-        }
-        console.log(totalpath);  
-    });
-    USERS.update({_id:  params.id}, {$set: {"img_user":[{"titulo":sing+ "_" +img.name,"pathfile":totalpath}]}}, (err, docs) => {
+    USERS.update({_id:  params.id}, {$set: {"img_user":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
-         } 
+         }
+         img.mv(totalpath, async(err) => {
+            if (err) {
+                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
+            }
+            console.log(totalpath);  
+        });
+         //elimando part 2
+         try {
+            fs.unlinkSync('./img/'+titulo)
+            console.log('File removed')
+          } catch(err) {
+            console.error('Something wrong happened removing the file', err)
+          }
          res.status(200).json(docs);
      });
 
