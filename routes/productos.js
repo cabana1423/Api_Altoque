@@ -172,6 +172,7 @@ router.put("/put-img",/*midleware,*/ async(req, res) => {
      });
 
 });
+// GET id 
 router.get("/id",/*midleware,*/ async(req, res) => {
     var params= req.query;
     if (params.id == null) {
