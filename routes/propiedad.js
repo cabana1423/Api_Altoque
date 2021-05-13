@@ -190,8 +190,6 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var idimg = params.id ;
-    var imagen=await PROP.find({"img_prop._id": idimg});
     var prop= PROP.find({_id:params.id});
     prop.exec((err, docs)=>{
         if(err){

@@ -4,10 +4,23 @@ var CUENTASCHEMA = new mongoose.Schema({
         type: Date,
         default: new Date()
     },
-    productos:{
-        type:Array,
-        default:[]
-    },
+    productos:[{
+        id_p:
+        {
+                type:String,
+                required:[true, "el id del producto es requerida"]
+        },
+        nombre_p:
+        {
+                type:String,
+                required:[true, "el nombre del producto es requerida"]
+        },
+        total_p:
+        {
+                type:String,
+                required:[true, "el precio total es requerida"]
+        }
+    }],
     TOTALP: {
         type: Number,
         required: [true, "necesario el total"]

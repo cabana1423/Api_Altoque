@@ -25,21 +25,22 @@ router.post("/", /*midleware,*/ async(req, res) => {
         cont=params.id.length;
     }
     else{
-        res.status(300).json({msn: "faltan datos"});
+        res.status(300).json({msn: "Arreglos desiguales "});
         return;
     }
-    var vec= new Array();
-    var aux={};var sum=0;
+    let vec= new Array();
+    var sum=0;
     for(var i=0;i<cont;i++)
     {
-            aux["id"]=params.id[i]; aux["nombre"]=params.nombre[i];
-            aux["total"]=params.total[i];
+        let propiedad = {
+            "id_p": params.id[i],
+            "nombre_p": params.nombre[i],
+            "total_p": params.total[i],
+          }
             sum=sum+parseFloat(params.total[i]);
-            //console.log(params.total[i]);
-            vec[i]=aux;
+            vec.push(propiedad);         
     }
     obj["productos"]=vec;
-    //console.log(sum);
     obj["TOTALP"]=sum;
     obj["id_userPed"]=req.query.id_u;
     var contDB = new CONT(obj);
@@ -49,6 +50,78 @@ router.post("/", /*midleware,*/ async(req, res) => {
             return;
         }
         res.json(docs);
+        return;
+    });
+});
+//      GET     cuentas
+
+router.get("/",/*midleware,*/ (req, res) => {
+    var filter={};
+    var params= req.query;
+    var select="";
+    var order = {};
+    if(params.id_u!=null){
+        var expresion =new RegExp(params.id_u);
+        filter["id_user"]=expresion;
+    }
+    if(params.filters!=null){
+        select=params.filters.replace(/,/g, " ");
+    }
+    if (params.order != null) {
+        var data = params.order.split(",");
+        var number = parseInt(data[1]);
+        order[data[0]] = number;
+    }
+    //console.log(filter);
+    //console.log("es estes"+select);
+    var contDB=CONT.find(filter).
+    select(select).
+    sort(order);
+    contDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json(docs);
+        return;
+    });
+  });
+
+//  DELETE      cuentas     ;)
+
+router.delete("/",/*midleware,*/ async(req, res) => {
+    if (req.query.id == null) {
+        res.status(300).json({
+        msn: "no existe id"
+        });
+        return;
+    }
+    var r = await CONT.remove({_id: req.query.id});
+    res.status(300).json(r);
+});
+// GET   unica cuenta
+
+/*        GET prop por id      */
+
+router.get("/id",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    if (params.id == null) {
+        res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }
+    var cuenta=await CONT.find({_id:params.id});
+    if(cuenta.length==0){
+        res.status(300).json({msn: "la cuenta no existe"});
+        return;
+    }
+    var cont= CONT.find({_id:params.id});
+    cont.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json(docs);
         return;
     });
 });
