@@ -48,7 +48,12 @@ var PROP_SCHEMA = new mongoose.Schema({
         fecha_reg: {
             type: Date,
             default: new Date()
+        },
+        estado: {
+            type: String,
+            default:"vigente"
         }
+
 
 });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);
