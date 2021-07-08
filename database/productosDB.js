@@ -13,7 +13,7 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         required: [true, "La descripcion del menu es nesesaria es necesario"]
     },
     img_produc:[{
-        titulo:
+        sha:
         {
             type:String,
             required:[true, "el titulo de la imagen es requerida"]
@@ -21,6 +21,11 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         pathfile: {
             type: String,
             required: [true, "la ruta de la imagen es necesaria"]
+        },
+        relativepath:
+        {
+            type:String,
+            required:[true, "la ruta total de imagen es requerida"]
         }
     }],
     id_user: {

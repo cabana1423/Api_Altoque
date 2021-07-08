@@ -33,16 +33,16 @@ var USERSCHEMA = new mongoose.Schema({
         default: new Date()
     },
     img_user:[{
-        titulo:
+        Url:
         {
             type:String,
-            required:[true, "el titulo de la imagen es requerida"]
+            default: ""
         },
-        pathfile: {
+        key: {
             type: String,
-            required: [true, "la ruta de la imagen es necesaria"]
+            default: ""
         }
-    }] 
+    }], 
     /*limite:{
         type:Number,
         default:0 

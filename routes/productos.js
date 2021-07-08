@@ -1,15 +1,10 @@
 var express = require("express");
 var router = express.Router();
-var fileUpload = require("express-fileupload")
 var PRODUC = require("../database/productosDB");
 var PROP = require("../database/propiedadDB");
 var sha1 = require("sha1");
 const fs = require('fs');
 //var midleware=require("./midleware");
-router.use(fileUpload({
-    fileSize: 1 * 1024 * 1024,
-    abortOnLimit: true
-}));
 
 //      POST    producto
 router.post("/", /*midleware,*/ async(req, res) => {
@@ -36,7 +31,9 @@ router.post("/", /*midleware,*/ async(req, res) => {
     if(img.size>tamaño){
         return res.status(300).send({msn : "el archivo es muy grande"});
     }
-    obj["img_produc"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
+    var shaPath=sha1(totalpath);
+    obj["img_produc"]=[{"sha":shaPath,
+    "pathfile":totalpath,"relativepath":"/produc/getfile/?id="+shaPath}];
     obj["id_prop"]=params.id;
     var producDB = new PRODUC(obj);
     producDB.save((err, docs) => {
@@ -53,6 +50,27 @@ router.post("/", /*midleware,*/ async(req, res) => {
         return;
     });
 
+});
+
+// get image
+router.get("/getfile", async(req, res, next) => {
+    var params = req.query;
+    if (params == null) {
+        res.status(300).json({
+            msn: "Error es necesario un ID"
+        });
+        return;
+    }
+    var prop =  await PRODUC.find({'img_produc.sha': params.id});
+    if (prop.length > 0) {
+        var path = prop[0].img_produc[0].pathfile;
+        res.sendFile(path);
+        return;
+    }
+    res.status(300).json({
+        msn: "Error en la petición"
+    });
+    return;
 });
 
 /*        GET prop      */

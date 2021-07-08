@@ -16,7 +16,7 @@ var PROP_SCHEMA = new mongoose.Schema({
             type: Number,
             required: [true, "El telefono es necesario"]
         },
-        hubicacion:[{
+        ubicacion:[{
             lat: {
                 type: String, 
                 required: [true, "falta log"]
@@ -30,8 +30,9 @@ var PROP_SCHEMA = new mongoose.Schema({
                 required: [true, "La direccion es necesaria"]
             },
         }],
-        img_prop:[{
-            titulo:
+        img_prop:{
+            type:Array,
+            sha:
             {
                 type:String,
                 required:[true, "el titulo de la imagen es requerida"]
@@ -39,8 +40,13 @@ var PROP_SCHEMA = new mongoose.Schema({
             pathfile: {
                 type: String,
                 required: [true, "la ruta de la imagen es necesaria"]
+            },
+            relativepath:
+            {
+                type:String,
+                required:[true, "la ruta total de imagen es requerida"]
             }
-        }],
+        },
         id_user: {
             type: String,
             required: [true, "El id usuario es necesario"]

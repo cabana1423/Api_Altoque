@@ -1,20 +1,16 @@
 var express = require("express");
 var router = express.Router();
-var fileUpload = require("express-fileupload")
 var PROP = require("../database/propiedadDB");
 var USERS = require("../database/usersDB");
 var sha1 = require("sha1");
 const fs = require('fs');
 //var midleware=require("./midleware");
-router.use(fileUpload({
-    fileSize: 1 * 1024 * 1024,
-    abortOnLimit: true
-}));
 
 //  POST prop
 
 router.post("/", /*midleware,*/ async(req, res) => {
     var params = req.query;
+    obj = req.body;
     var pr=req.body;
     if (params.id == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
@@ -27,19 +23,36 @@ router.post("/", /*midleware,*/ async(req, res) => {
         return;
     }
         //imagen up
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_prop");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    const tamaño=1500000;
-    if(img.size>tamaño){
-        return res.status(300).send({msn : "el archivo es muy grande"});
+    var tamanio=req.files.file.length;
+    console.log(tamanio);
+    vect = new Array();
+    pathss=new Array();
+    Fil=new Array();
+    for(var i=0;i<tamanio;i++){
+        var img=req.files.file[i];
+        const size_file=1500000;
+        if(img.size<size_file){
+            var path= __dirname.replace(/\/routes/g, "/img_prop");
+            var date =new Date();
+            var sing  =sha1(date.toString()).substr(1,12);
+            var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
+            pathss.push(totalpath);
+            Fil.push(img);
+            var shaPath=sha1(totalpath);
+            let img_propi={
+                "sha":shaPath,
+                "pathfile":totalpath,
+                "relativepath":"/prop/getfile/?id="+shaPath
+                }
+            vect.push(img_propi);
+        }else{
+            console.log("existe un archivo grande el cual no se subio");
+        }        
     }
             //prop up
-    obj = req.body;
-    obj["hubicacion"]=[{"lat":pr.lat,"lon":pr.lon,"calle":pr.calle}];
-    obj["img_prop"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
+    obj["img_prop"]=vect;
+    obj["ubicacion"]=[{"lat":pr.lat,"lon":pr.lon,"calle":pr.calle}];
+    
     obj["id_user"]=params.id;
     var propDB = new PROP(obj);
     propDB.save((err, docs) => {
@@ -47,16 +60,41 @@ router.post("/", /*midleware,*/ async(req, res) => {
             res.status(300).json(err);
             return;
         }
-        img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            }
-        });
+        for(var i=0;i<pathss.length;i++){
+            Fil[i].mv(pathss[i], async(err) => {
+                if (err) {
+                    return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
+                }
+            });
+        }
+        File=[];
         res.json(docs);
         return;
     });
 
 });
+// get image
+router.get("/getfile", async(req, res, next) => {
+    var params = req.query;
+    if (params == null) {
+        res.status(300).json({
+            msn: "Error es necesario un ID"
+        });
+        return;
+    }
+    var prop =  await PROP.find({'img_prop.sha': params.id});
+    if (prop.length > 0) {
+        var path = prop[0].img_prop[0].pathfile;
+        res.sendFile(path);
+        return;
+    }
+    res.status(300).json({
+        msn: "Error en la petición"
+    });
+    return;
+});
+
+
 /*        GET prop      */
 
 router.get("/",/*midleware,*/ (req, res) => {
@@ -103,14 +141,18 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         return;
     }
     var propiedad=await PROP.find({_id:req.query.id});
-    var titulo=propiedad[0].img_prop[0].titulo;
     var r = await PROP.remove({_id: req.query.id});
-    try {
-        fs.unlinkSync('./img_prop/'+titulo)
-        console.log('File removed')
-      } catch(err) {
-        console.error('Something wrong happened removing the file', err)
-      } 
+    console.log(propiedad[0].img_prop.length);
+    for(var i=0;i<propiedad[0].img_prop.length;i++){
+        var pathfiles=propiedad[0].img_prop[i].pathfile;
+        try {
+            fs.unlinkSync(pathfiles)
+            console.log('File removed')
+          } catch(err) {
+            console.error('Something wrong happened removing the file', err)
+          }
+    }
+
     res.status(300).json(r);
 });
     

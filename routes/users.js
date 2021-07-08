@@ -1,30 +1,56 @@
 var express = require('express');
-var fileUpload = require("express-fileupload")
 var router = express.Router();
+const fileUpload = require('express-fileupload');
+const fileUploadService =  require('../services/upload.service');
+var AWS = require('aws-sdk');
 var sha1 = require("sha1");
 const fs = require('fs');
 //var JWT=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
-//var midleware=require("./midleware");
+const bucketAws ="usuariosfiles"
 
 router.use(fileUpload({
-    fileSize: 1 * 1024 * 1024,
-    abortOnLimit: true
-}));
+    limits: { fileSize: 5 * 1024 * 1024 },
+}
+));
 
-/*        POST users       */
-
-router.post("/", async(req, res) => {
-    //img user datos
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    const tamaño=1500000;
-    if(img.size>tamaño){
-        return res.status(300).send({msn : "el archivo es muy grande"});
+async function borrar(keyF){
+    AWS.config.update({
+        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
+        secretAccessKey: "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",
+        region: "sa-east-1",
+    });
+    const s3 = new AWS.S3();
+    
+    const params = {
+            Bucket: bucketAws,
+            Key: keyF //if any sub folder-> path/of/the/folder.ext
     }
+    try {
+        await s3.headObject(params).promise()
+        console.log("File Found in S3")
+        try {
+            await s3.deleteObject(params).promise()
+            console.log("file deleted Successfully")
+        }
+        catch (err) {
+             console.log("ERROR in file Deleting : " + JSON.stringify(err))
+        }
+    } catch (err) {
+            console.log("File not Found ERROR : " + err.code)
+    }
+}
+
+router.post("/", async(req, res,next) => {
+    //img user datos
+    var uploadRes;
+        if(req.files && req.files.media){
+            const file= req.files.media;
+            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+            //console.log(uploadRes);    
+        }
+    const keyF=uploadRes.key;
+    const urlF=uploadRes.Url;
     // user datos
     var obj={};
     var userInfo = req.body;
@@ -47,44 +73,62 @@ router.post("/", async(req, res) => {
     }*/
     userInfo.password = sha1(userInfo.password);
     obj=userInfo;
-    obj["img_user"]=[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}];
+    obj["img_user"]=[{"Url":urlF,"key":keyF}];
     var userDB = new USERS(obj);
-    userDB.save((err, docs) => {
+    userDB.save(async(err, docs) => {
         if (err) {
+            //delete file
+            borrar(keyF);
             res.status(300).json(err);
             return;
         }
-        img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            }
-            console.log(totalpath);
-            //imgU["relativepath"] = "/api/1.0/getfile/?id=" + obj["hash"];
-        });
         res.json(docs);
         return;
     });
+});
+//      Get img users
+router.get("/getfile", async(req, res, next) => {
+    var params = req.query;
+    if (params == null) {
+        res.status(300).json({
+            msn: "Error es necesario un ID"
+        });
+        return;
+    }
+    var user =  await USERS.find({'img_user.sha': params.id});
+    console.log(user);
+    if (user.length > 0) {
+        var path = user[0].img_user[0].pathfile;
+        res.sendFile(path);
+        return;
+    }
+    res.status(300).json({
+        msn: "Error en la petición"
+    });
+    return;
 });
 
 /*        POST users login       */
 
 router.post("/login", async(req, res) => {
-  var body = req.body;
-  if (body.email == null) {
+  var params = req.body;
+  if (params.email == null) {
       res.status(300).json({msn: "El email es necesario"});
            return;
   }
-  if (body.password == null) {
+  if (params.password == null) {
       res.status(300).json({msn: "El password es necesario"});
       return;
   }
-  var results = await USERS.find({email: body.email, password: sha1(body.password)});
+  var results = await USERS.find({email: params.email, password: sha1(params.password)});
+  console.log(results.length);
   if (results.length == 1) {
       /*var token =JWT.sign({
           exp:Math.floor(Date.now()/1000)+(60*60*60),
           data:results[0].id
       }, 'PedroCabanaBautistaPotosiBolivia2020');*/
-      res.status(200).json({msn: "Bienvenido al sistema " + body.email + " :) "/*,token:token,id:results[0].id*/});
+      res.status(200).json({msn: "Bienvenido al sistema " + params.email + " :) ",
+                            idU:results[0]._id/*,token:token,id:results[0].id*/});
       return;
   }
   res.status(200).json({msn: "Credenciales incorrectas"});

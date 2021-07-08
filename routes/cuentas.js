@@ -32,13 +32,13 @@ router.post("/", /*midleware,*/ async(req, res) => {
     var sum=0;
     for(var i=0;i<cont;i++)
     {
-        let propiedad = {
+        let productos = {
             "id_p": params.id[i],
             "nombre_p": params.nombre[i],
             "total_p": params.total[i],
           }
             sum=sum+parseFloat(params.total[i]);
-            vec.push(propiedad);         
+            vec.push(productos);         
     }
     obj["productos"]=vec;
     obj["TOTALP"]=sum;
