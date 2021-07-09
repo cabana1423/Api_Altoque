@@ -1,98 +1,124 @@
 var express = require("express");
 var router = express.Router();
+const fileUpload = require('express-fileupload');
+const fileUploadService =  require('../services/upload.service');
+var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
 var USERS = require("../database/usersDB");
 var sha1 = require("sha1");
 const fs = require('fs');
+const bucketAws ="propiedadfiles"
 //var midleware=require("./midleware");
+router.use(fileUpload({
+    limits: { fileSize: 1 * 1024 * 1024 },
+}
+));
 
+async function borrar(Archs){
+    console.log(Archs);
+    AWS.config.update({
+        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
+        secretAccessKey: "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",
+        region: "sa-east-1",
+    });
+    const s3 = new AWS.S3();
+    
+    const params = {
+            Bucket: bucketAws,
+            Delete: {
+                Objects:Archs
+            }
+    }
+            try {
+                await s3.deleteObjects(params).promise()
+                console.log("file deleted Successfully")
+            }
+            catch (err) {
+                console.log("ERROR in file Deleting : " + JSON.stringify(err))
+            }
+}
 //  POST prop
 
 router.post("/", /*midleware,*/ async(req, res) => {
     var params = req.query;
+    var obj={};
     obj = req.body;
     var pr=req.body;
     if (params.id == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
     }
-    // validando usuraio
-    var users=await USERS.find({_id:params.id});
-    if(users.length==0){
-        res.status(300).json({msn: "el usuario no existe"});
-        return;
+    //imagen up
+    var tamanio=req.files.media.length;
+    if(tamanio>2){
+        return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
     }
-        //imagen up
-    var tamanio=req.files.file.length;
-    console.log(tamanio);
-    vect = new Array();
-    pathss=new Array();
-    Fil=new Array();
+    vect = new Array(); Archs=new Array();
+    var uploadRes;
     for(var i=0;i<tamanio;i++){
-        var img=req.files.file[i];
-        const size_file=1500000;
-        if(img.size<size_file){
-            var path= __dirname.replace(/\/routes/g, "/img_prop");
-            var date =new Date();
-            var sing  =sha1(date.toString()).substr(1,12);
-            var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-            pathss.push(totalpath);
-            Fil.push(img);
-            var shaPath=sha1(totalpath);
-            let img_propi={
-                "sha":shaPath,
-                "pathfile":totalpath,
-                "relativepath":"/prop/getfile/?id="+shaPath
-                }
-            vect.push(img_propi);
-        }else{
-            console.log("existe un archivo grande el cual no se subio");
-        }        
+        if(req.files && req.files.media[i]){
+            const file= req.files.media[i];
+            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
+            let arch={
+                "Key":uploadRes.key
+            }
+            vect.push(uploadRes);
+            Archs.push(arch);
+        }
     }
-            //prop up
+    //prop up
     obj["img_prop"]=vect;
     obj["ubicacion"]=[{"lat":pr.lat,"lon":pr.lon,"calle":pr.calle}];
-    
     obj["id_user"]=params.id;
     var propDB = new PROP(obj);
     propDB.save((err, docs) => {
         if (err) {
+            borrar(Archs);
             res.status(300).json(err);
             return;
         }
-        for(var i=0;i<pathss.length;i++){
-            Fil[i].mv(pathss[i], async(err) => {
-                if (err) {
-                    return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-                }
-            });
-        }
-        File=[];
         res.json(docs);
         return;
     });
 
 });
-// get image
-router.get("/getfile", async(req, res, next) => {
+// PUT image propiedad
+router.put("/file", async(req, res, next) => {
     var params = req.query;
-    if (params == null) {
-        res.status(300).json({
-            msn: "Error es necesario un ID"
-        });
+    if (params.key == null) {
+        res.status(300).json({msn: "Error es necesario el key"});
         return;
     }
-    var prop =  await PROP.find({'img_prop.sha': params.id});
-    if (prop.length > 0) {
-        var path = prop[0].img_prop[0].pathfile;
-        res.sendFile(path);
-        return;
+    var prop =  await PROP.find({"img_prop.key":params.key});
+    console.log(prop);
+    var uploadRes;
+    if(req.files && req.files.media){
+        const file= req.files.media;
+        uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws); 
     }
-    res.status(300).json({
-        msn: "Error en la petición"
-    });
+    const keyF=uploadRes.key;
+    const urlF=uploadRes.Url;
+    PROP.update({"img_prop.key":params.key}, 
+    {$set: {"img_prop.$[elem]":{"Url":urlF,"key":keyF}}},
+    { multi: true,arrayFilters: [{'elem.key': params.key}]}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+            var ke=[{"Key":keyF}];
+            borrar(ke);
+             return;
+         }
+         if(docs.nModified==1){
+            var ke=[{"Key":params.key}];
+            borrar(ke);
+         }else{
+            var ke=[{"Key":keyF}];
+         borrar(ke);
+         }
+         res.status(200).json(docs);
+     });
     return;
 });
+
 
 
 /*        GET prop      */

@@ -4,7 +4,6 @@ const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
 var AWS = require('aws-sdk');
 var sha1 = require("sha1");
-const fs = require('fs');
 //var JWT=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
 const bucketAws ="usuariosfiles"
@@ -42,15 +41,6 @@ async function borrar(keyF){
 }
 
 router.post("/", async(req, res,next) => {
-    //img user datos
-    var uploadRes;
-        if(req.files && req.files.media){
-            const file= req.files.media;
-            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
-            //console.log(uploadRes);    
-        }
-    const keyF=uploadRes.key;
-    const urlF=uploadRes.Url;
     // user datos
     var obj={};
     var userInfo = req.body;
@@ -73,6 +63,15 @@ router.post("/", async(req, res,next) => {
     }*/
     userInfo.password = sha1(userInfo.password);
     obj=userInfo;
+    //carga de archivo
+    var uploadRes;
+    if(req.files && req.files.media){
+        const file= req.files.media;
+        uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+        //console.log(uploadRes);    
+    }
+    const keyF=uploadRes.key;
+    const urlF=uploadRes.Url;
     obj["img_user"]=[{"Url":urlF,"key":keyF}];
     var userDB = new USERS(obj);
     userDB.save(async(err, docs) => {
@@ -86,25 +85,30 @@ router.post("/", async(req, res,next) => {
         return;
     });
 });
-//      Get img users
-router.get("/getfile", async(req, res, next) => {
+//      PUT img users
+router.put("/file", async(req, res, next) => {
     var params = req.query;
-    if (params == null) {
-        res.status(300).json({
-            msn: "Error es necesario un ID"
-        });
+    if (params.id == null) {
+        res.status(300).json({msn: "Error es necesario un ID"});
         return;
     }
-    var user =  await USERS.find({'img_user.sha': params.id});
-    console.log(user);
-    if (user.length > 0) {
-        var path = user[0].img_user[0].pathfile;
-        res.sendFile(path);
-        return;
+    var user =  await USERS.find({_id: params.id});
+    const exkey=user[0].img_user[0].key;
+    var uploadRes;
+    if(req.files && req.files.media){
+        const file= req.files.media;
+        uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws); 
     }
-    res.status(300).json({
-        msn: "Error en la petición"
-    });
+    const keyF=uploadRes.key;
+    const urlF=uploadRes.Url;
+    USERS.update({_id:  params.id}, {$set: {"img_user":[{"Url":urlF,"key":keyF}]}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         borrar(exkey);
+         res.status(200).json(docs);
+     });
     return;
 });
 
@@ -178,14 +182,10 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         return;
     }
     var user=await USERS.find({_id:req.query.id});
-    var titulo=user[0].img_user[0].titulo;
+    var imguser=user[0].img_user[0].key;
     var r = await USERS.remove({_id: req.query.id});
-    try {
-        fs.unlinkSync('./img/'+titulo)
-        console.log('File removed')
-      } catch(err) {
-        console.error('Snot file removed', err)
-      }
+    borrar(imguser);
+    console.log(imguser);
     res.status(300).json(r);
 });
 
@@ -229,45 +229,6 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 
 });
 
- /*        PUT img users      */
-
- router.put("/put-img",/*midleware,*/ async(req, res) => {
-    var params = req.query;
-    if (params.id == null) {
-        res.status(300).json({msn: "El parámetro ID es necesario"});
-        return;
-    }//eliminando img part 1
-    var user=await USERS.find({_id:params.id});
-    var titulo=user[0].img_user[0].titulo;
-    //new img
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    USERS.update({_id:  params.id}, {$set: {"img_user":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
-        if (err) {
-            res.status(500).json({msn: "Existen problemas en la base de datos"});
-             return;
-         }
-         img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            }
-            console.log(totalpath);  
-        });
-         //elimando part 2
-         try {
-            fs.unlinkSync('./img/'+titulo)
-            console.log('File removed')
-          } catch(err) {
-            console.error('Something wrong happened removing the file', err)
-          }
-         res.status(200).json(docs);
-     });
-
-});
-
 /*        GET users por id      */
 
 router.get("/id",/*midleware,*/ async(req, res) => {
@@ -286,21 +247,6 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(200).json(docs);
         return;
     });
-});
-router.get("/get_img"/*,midleware*/, async(req, res, next)=>{
-    var params=req.query;
-    if(params.id==null){
-        res.status(300).json({msn: "error es necesario una ID"});
-        return;
-    }
-    var idimg = params.id ;
-    var imagen=await USERS.find({"img_user._id": idimg});
-    if(imagen.length==1){
-        res.json(imagen[0].img_user[0].pathfile);
-        return;
-    }
-    res.status(300).json({msn: "error en la peticion"});
-    return;
 });
 
 module.exports = router;

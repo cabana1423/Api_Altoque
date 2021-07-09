@@ -32,19 +32,14 @@ var PROP_SCHEMA = new mongoose.Schema({
         }],
         img_prop:{
             type:Array,
-            sha:
+            Url:
             {
                 type:String,
                 required:[true, "el titulo de la imagen es requerida"]
             },
-            pathfile: {
+            key: {
                 type: String,
                 required: [true, "la ruta de la imagen es necesaria"]
-            },
-            relativepath:
-            {
-                type:String,
-                required:[true, "la ruta total de imagen es requerida"]
             }
         },
         id_user: {
@@ -59,8 +54,6 @@ var PROP_SCHEMA = new mongoose.Schema({
             type: String,
             default:"vigente"
         }
-
-
 });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);
 module.exports = PROP;
