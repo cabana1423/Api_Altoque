@@ -2,9 +2,41 @@ var express = require("express");
 var router = express.Router();
 var PRODUC = require("../database/productosDB");
 var PROP = require("../database/propiedadDB");
+const fileUpload = require('express-fileupload');
+const fileUploadService =  require('../services/upload.service');
+var AWS = require('aws-sdk');
 var sha1 = require("sha1");
 const fs = require('fs');
+const bucketAws ="productofiles"
 //var midleware=require("./midleware");
+
+router.use(fileUpload({
+    limits: { fileSize: 1 * 1024 * 1024 },
+}
+));
+
+async function borrar(Archs){
+    AWS.config.update({
+        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
+        secretAccessKey: "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",
+        region: "sa-east-1",
+    });
+    const s3 = new AWS.S3();
+    
+    const params = {
+            Bucket: bucketAws,
+            Delete: {
+                Objects:Archs
+            }
+    }
+            try {
+                await s3.deleteObjects(params).promise()
+                console.log("file deleted Successfully")
+            }
+            catch (err) {
+                console.log("ERROR in file Deleting : " + JSON.stringify(err))
+            }
+}
 
 //      POST    producto
 router.post("/", /*midleware,*/ async(req, res) => {
@@ -14,64 +46,116 @@ router.post("/", /*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "ID de propiedad es necesaria"});
         return;
     }
-    var prop=await PROP.find({_id:params.id});
-    if(prop.length==1){
-        obj["id_user"]=prop[0].id_user;
+    var prop =  await PROP.find({_id:params.id});
+    var tamanio=req.files.media.length;
+    if(tamanio>4){
+        return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
     }
-    else{
-        res.status(300).json({msn: "la propiedad no existe"});
-        return;
+    vect = new Array(); Archs=new Array();
+    var uploadRes;
+    for(var i=0;i<tamanio;i++){
+        if(req.files && req.files.media[i]){
+            const file= req.files.media[i];
+            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
+            let arch={
+                "Key":uploadRes.key
+            }
+            vect.push(uploadRes);
+            Archs.push(arch);
+        }
     }
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_produc");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    const tamaño=1500000;
-    if(img.size>tamaño){
-        return res.status(300).send({msn : "el archivo es muy grande"});
-    }
-    var shaPath=sha1(totalpath);
-    obj["img_produc"]=[{"sha":shaPath,
-    "pathfile":totalpath,"relativepath":"/produc/getfile/?id="+shaPath}];
+    obj["img_produc"]=vect;
     obj["id_prop"]=params.id;
+    obj["id_user"]=prop[0].id_user;
     var producDB = new PRODUC(obj);
     producDB.save((err, docs) => {
         if (err) {
+            borrar(Archs);
             res.status(300).json(err);
             return;
         }
-        img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            }
-        });
         res.json(docs);
         return;
     });
 
 });
 
-// get image
-router.get("/getfile", async(req, res, next) => {
+/*  ADD IMG PRODUCTO    */
+router.post("/addimg", /*midleware,*/ async(req, res) => {
     var params = req.query;
-    if (params == null) {
-        res.status(300).json({
-            msn: "Error es necesario un ID"
-        });
-        return;
+    if (params.id == null) {
+        res.status(300).json({msn: "El id producto es necesario"});
+             return;
     }
-    var prop =  await PRODUC.find({'img_produc.sha': params.id});
-    if (prop.length > 0) {
-        var path = prop[0].img_produc[0].pathfile;
-        res.sendFile(path);
-        return;
+    //imagen up
+    var produc =  await PRODUC.find({_id:params.id});
+    var img=produc[0].img_produc;
+    var tamanio=req.files.media.length;
+    vect = new Array();
+    var uploadRes;
+    for(var i=0;i<tamanio;i++){
+        if(req.files && req.files.media[i]){
+            const file= req.files.media[i];
+            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
+            let arch={
+                "Key":uploadRes.key
+            }
+            vect.push(arch);
+            img.push(uploadRes);
+        }
     }
-    res.status(300).json({
-        msn: "Error en la petición"
-    });
+    PRODUC.update({_id:params.id}, 
+    {$set: {"img_produc":img}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+            borrar(vect);
+             return;
+         }
+         if(docs.nModified==0){
+            borrar(vect);
+         }
+         res.status(200).json(docs);
+     });
     return;
 });
+
+/**     DELETE IMGS PRODUCTO      */
+router.post("/deleteimg", /*midleware,*/ async(req, res) => {
+    var params = req.query;
+    if (params.k == null) {
+        res.status(300).json({msn: "El key es necesario"});
+             return;
+    }
+    //imagen up
+    let keys=params.k.split(',');
+    var produc =  await PRODUC.find({"img_produc.key":keys[0]});
+    var img=produc[0].img_produc;
+    for(var i=0;i<keys.length;i++){
+        for(var j=0;j<img.length;j++){
+            if(keys[i]==img[j].key){
+                img.splice(j,1);
+                break;
+            }
+        }
+    }
+    PRODUC.update({"img_produc.key":keys[0]}, 
+    {$set: {"img_produc":img}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         if(docs.nModified==1){
+            for(var i=0;i<keys.length;i++){
+                var aux={Key:keys[i]};
+                keys[i]=aux;
+            }
+            borrar(keys);
+         }
+         res.status(200).json(docs);
+     });
+    return;
+});
+
 
 /*        GET prop      */
 router.get("/",/*midleware,*/ (req, res) => {
@@ -112,22 +196,29 @@ router.get("/",/*midleware,*/ (req, res) => {
   /*        DELETE prop      */
   router.delete("/",/*midleware,*/ async(req, res) => {
     if (req.query.id == null) {
-        res.status(300).json({
-        msn: "no existe id"
-        });
+        res.status(300).json({msn: "no existe id"});
         return;
     }
     var producto=await PRODUC.find({_id:req.query.id});
-    var titulo=producto[0].img_produc[0].titulo;
-    var r = await PRODUC.remove({_id: req.query.id});
-    try {
-        fs.unlinkSync('./img_produc/'+titulo)
-        console.log('File removed')
-      } catch(err) {
-        console.error('Something wrong happened removing the file', err)
-      }
-    res.status(300).json(r);
-});
+    var img=producto[0].img_produc;
+    const vec=new Array();
+    for(var i=0;i<img.length;i++){
+        let aux={
+            Key:img[i].key
+        }
+        vec.push(aux);
+    }
+    PRODUC.remove({_id:req.query.id}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         if(docs.deletedCount==1){
+            borrar(vec);
+         }
+         res.status(200).json(docs);
+     });
+});;
 
     /*        PUT prop      */
  router.put("/",/*midleware,*/ async(req, res) => {
@@ -152,42 +243,6 @@ router.get("/",/*midleware,*/ (req, res) => {
         } 
         res.status(200).json(docs);
     });
-
-});
-
-/*        PUT img PRODUCTOS      */
-router.put("/put-img",/*midleware,*/ async(req, res) => {
-    var params = req.query;
-    if (params.id == null) {
-        res.status(300).json({msn: "El parámetro ID es necesario"});
-        return;
-    }//eliminando img
-    var producto=await PRODUC.find({_id:params.id});
-    var titulo=producto[0].img_produc[0].titulo;
-    //new img
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_produc");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    PRODUC.update({_id:  params.id}, {$set: {"img_produc":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
-        if (err) {
-            res.status(500).json({msn: "Existen problemas en la base de datos"});
-             return;
-         }
-         img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            } 
-        });
-         try {
-            fs.unlinkSync('./img_produc/'+titulo)
-            console.log('File removed')
-          } catch(err) {
-            console.error('Something wrong happened removing the file', err)
-          }
-         res.status(200).json(docs);
-     });
 
 });
 // GET id 

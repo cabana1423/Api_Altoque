@@ -4,10 +4,7 @@ const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
 var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
-var USERS = require("../database/usersDB");
-var sha1 = require("sha1");
-const fs = require('fs');
-const bucketAws ="propiedadfiles"
+const bucketAws ="propiedadesfiles"
 //var midleware=require("./midleware");
 router.use(fileUpload({
     limits: { fileSize: 1 * 1024 * 1024 },
@@ -15,7 +12,6 @@ router.use(fileUpload({
 ));
 
 async function borrar(Archs){
-    console.log(Archs);
     AWS.config.update({
         accessKeyId: "AKIAZNICKCXYYPV6L4WA",
         secretAccessKey: "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",
@@ -37,6 +33,7 @@ async function borrar(Archs){
                 console.log("ERROR in file Deleting : " + JSON.stringify(err))
             }
 }
+
 //  POST prop
 
 router.post("/", /*midleware,*/ async(req, res) => {
@@ -82,6 +79,73 @@ router.post("/", /*midleware,*/ async(req, res) => {
     });
 
 });
+
+/*  ADD IMG PROPIEDADES*/
+router.post("/addimg", /*midleware,*/ async(req, res) => {
+    var params = req.query;
+    if (params.id == null) {
+        res.status(300).json({msn: "El id propiedad es necesario"});
+             return;
+    }
+    //imagen up
+    var prop =  await PROP.find({_id:params.id});
+    var img=prop[0].img_prop;
+    var uploadRes;
+    if(req.files && req.files.media){
+        const file= req.files.media;
+        uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+        img.push(uploadRes);   
+    }
+    PROP.update({_id:params.id}, 
+    {$set: {"img_prop":img}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+            var ke=[{"Key":uploadRes.key}];
+            borrar(ke);
+             return;
+         }
+         if(docs.nModified==0){
+            var ke=[{"Key":uploadRes.key}];
+            borrar(ke);
+         }
+         res.status(200).json(docs);
+     });
+    return;
+});
+
+/** DELETE  IMG PROPIEDAD */
+router.post("/deleteimg", /*midleware,*/ async(req, res) => {
+    var params = req.query;
+    if (params.k == null) {
+        res.status(300).json({msn: "El key es necesario"});
+             return;
+    }
+    //imagen up
+    var prop =  await PROP.find({"img_prop.key":params.k});
+    console.log(prop);
+    var img=prop[0].img_prop;
+    for(var i=0;i<img.length;i++){
+        if(img[i].key==params.k){
+            img.splice(i,1);
+            break;
+        }
+    }
+    console.log(img);
+    PROP.update({"img_prop.key":params.k},
+    {$set: {"img_prop":img}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         if(docs.nModified==1){
+            var ke=[{"Key":params.k}];
+            borrar(ke);
+         }
+         res.status(200).json(docs);
+     });
+    return;
+});
+
 // PUT image propiedad
 router.put("/file", async(req, res, next) => {
     var params = req.query;
@@ -161,25 +225,28 @@ router.get("/",/*midleware,*/ (req, res) => {
 
 router.delete("/",/*midleware,*/ async(req, res) => {
     if (req.query.id == null) {
-        res.status(300).json({
-        msn: "no existe id"
-        });
+        res.status(300).json({msn: "no existe id"});
         return;
     }
     var propiedad=await PROP.find({_id:req.query.id});
-    var r = await PROP.remove({_id: req.query.id});
-    console.log(propiedad[0].img_prop.length);
-    for(var i=0;i<propiedad[0].img_prop.length;i++){
-        var pathfiles=propiedad[0].img_prop[i].pathfile;
-        try {
-            fs.unlinkSync(pathfiles)
-            console.log('File removed')
-          } catch(err) {
-            console.error('Something wrong happened removing the file', err)
-          }
+    var img=propiedad[0].img_prop;
+    const vec=new Array();
+    for(var i=0;i<img.length;i++){
+        let aux={
+            Key:img[i].key
+        }
+        vec.push(aux);
     }
-
-    res.status(300).json(r);
+    PROP.remove({_id:req.query.id}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         if(docs.deletedCount==1){
+            borrar(vec);
+         }
+         res.status(200).json(docs);
+     });
 });
     
  /*        PUT prop      */
@@ -212,42 +279,6 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 
 });
 
- /*        PUT img propiedades      */
-
- router.put("/put-img",/*midleware,*/ async(req, res) => {
-    var params = req.query;
-    if (params.id == null) {
-        res.status(300).json({msn: "El parámetro ID es necesario"});
-        return;
-    }
-    var propiedad=await PROP.find({_id:params.id});
-    var titulo=propiedad[0].img_prop[0].titulo;
-    //new img
-    var img=req.files.file;
-    var path= __dirname.replace(/\/routes/g, "/img_prop");
-    var date =new Date();
-    var sing  =sha1(date.toString()).substr(1,12);
-    var totalpath = path + "/" + sing + "_" + img.name.replace(/\s/g,"_");
-    PROP.update({_id:  params.id}, {$set: {"img_prop":[{"titulo":sing+ "_" +img.name.replace(/\s/g,"_"),"pathfile":totalpath}]}}, (err, docs) => {
-        if (err) {
-            res.status(500).json({msn: "Existen problemas en la base de datos"});
-             return;
-         }
-         img.mv(totalpath, async(err) => {
-            if (err) {
-                return res.status(300).send({msn : "Error al escribir el archivo en el disco duro"});
-            } 
-        });
-         try {
-            fs.unlinkSync('./img_prop/'+titulo)
-            console.log('File removed')
-          } catch(err) {
-            console.error('Something wrong happened removing the file', err)
-          } 
-         res.status(200).json(docs);
-     });
-
-});
 
 /*        GET prop por id      */
 
@@ -267,23 +298,6 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(200).json(docs);
         return;
     });
-});
-
-// observaciones talves se elimine
-router.get("/get_img"/*,midleware*/, async(req, res, next)=>{
-    var params=req.query;
-    if(params.id==null){
-        res.status(300).json({msn: "error es necesario una ID"});
-        return;
-    }
-    var idimg = params.id ;
-    var imagen=await PROP.find({"img_prop._id": idimg});
-    if(imagen.length==1){
-        res.json(imagen[0].img_prop[0].pathfile);
-        return;
-    }
-    res.status(300).json({msn: "error en la peticion"});
-    return;
 });
 
 module.exports = router;
