@@ -17,18 +17,18 @@ var PROP_SCHEMA = new mongoose.Schema({
             required: [true, "El telefono es necesario"]
         },
         ubicacion:[{
-            lat: {
-                type: String, 
-                required: [true, "falta log"]
-            },
-            lon: {
-                type: String, 
-                required: [true, "falta lat"]
-            },
+            // lat: {
+            //     type: String, 
+            //     required: [true, "falta log"]
+            // },
+            // lon: {
+            //     type: String, 
+            //     required: [true, "falta lat"]
+            // },
             calle: {
                 type: String,
                 required: [true, "La direccion es necesaria"]
-            },
+            }
         }],
         img_prop:{
             type:Array,

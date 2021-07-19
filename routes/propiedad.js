@@ -46,6 +46,9 @@ router.post("/", /*midleware,*/ async(req, res) => {
              return;
     }
     //imagen up
+    if(req.files.media.length==undefined){
+        req.files.media=[req.files.media];
+    }
     var tamanio=req.files.media.length;
     if(tamanio>2){
         return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});

@@ -11,7 +11,7 @@ const bucketAws ="productofiles"
 //var midleware=require("./midleware");
 
 router.use(fileUpload({
-    limits: { fileSize: 1 * 1024 * 1024 },
+    limits: { fileSize: 8 * 1024 * 1024 },
 }
 ));
 
