@@ -166,7 +166,7 @@ router.get("/",/*midleware,*/ (req, res) => {
     if(params.nombre!=null){
         var expresion =new RegExp(params.nombre);
         filter["nombre"]=expresion;
-    }if(params.id_u!=null){
+    }if(params.id_p!=null){
         var expresion =new RegExp(params.id_p);
         filter["id_prop"]=expresion;
     }
