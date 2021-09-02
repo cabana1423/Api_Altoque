@@ -4,7 +4,8 @@ var CUENTASCHEMA = new mongoose.Schema({
         type: Date,
         default: new Date()
     },
-    productos:[{
+    productos:{
+        type:Array,
         id_p:
         {
                 type:String,
@@ -20,10 +21,14 @@ var CUENTASCHEMA = new mongoose.Schema({
                 type:String,
                 required:[true, "el precio total es requerida"]
         }
-    }],
+    },
     TOTALP: {
         type: Number,
         required: [true, "necesario el total"]
+    },
+    nota: {
+        type: String,
+        default:""
     },
     /*hubicacion:[{
         lat: {

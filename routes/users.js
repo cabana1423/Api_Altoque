@@ -101,7 +101,7 @@ router.put("/file", async(req, res, next) => {
     }
     const keyF=uploadRes.key;
     const urlF=uploadRes.Url;
-    USERS.update({_id:  params.id}, {$set: {"img_user":[{"Url":urlF,"key":keyF}]}}, (err, docs) => {
+    USERS.updateOne({_id:  params.id}, {$set: {"img_user":[{"Url":urlF,"key":keyF}]}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
@@ -135,7 +135,7 @@ router.post("/login", async(req, res) => {
                             idU:results[0]._id/*,token:token,id:results[0].id*/});
       return;
   }
-  res.status(200).json({msn: "Credenciales incorrectas"});
+  res.status(300).json({msn: "Credenciales incorrectas"});
 });
 
 /*        GET users      */
@@ -219,7 +219,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         }
     }
     console.log(updateobjectdata);
-    USERS.update({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
+    USERS.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
             return;

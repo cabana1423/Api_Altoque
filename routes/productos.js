@@ -47,8 +47,11 @@ router.post("/", /*midleware,*/ async(req, res) => {
         return;
     }
     var prop =  await PROP.find({_id:params.id});
+    if(req.files.media.length==undefined){
+        req.files.media=[req.files.media];
+    }
     var tamanio=req.files.media.length;
-    if(tamanio>4){
+    if(tamanio>5){
         return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
     }
     vect = new Array(); Archs=new Array();
@@ -90,6 +93,9 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
     //imagen up
     var produc =  await PRODUC.find({_id:params.id});
     var img=produc[0].img_produc;
+    if(req.files.media.length==undefined){
+        req.files.media=[req.files.media];
+    }
     var tamanio=req.files.media.length;
     vect = new Array();
     var uploadRes;
@@ -104,7 +110,7 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
             img.push(uploadRes);
         }
     }
-    PRODUC.update({_id:params.id}, 
+    PRODUC.updateOne({_id:params.id}, 
     {$set: {"img_produc":img}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
@@ -138,7 +144,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
             }
         }
     }
-    PRODUC.update({"img_produc.key":keys[0]}, 
+    PRODUC.updateOne({"img_produc.key":keys[0]}, 
     {$set: {"img_produc":img}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
@@ -253,6 +259,22 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     }
     var produc= PRODUC.find({_id:params.id});
+    produc.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json(docs);
+        return;
+    });
+});
+router.get("/idnot",/*midleware,*/ async(req, res) => {
+    var params= req.query;
+    if (params.id_not == null||params.id_p == null) {
+        res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }
+    var produc= PRODUC.find({_id:{$ne:params.id_not},"id_prop":params.id_p});
     produc.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});

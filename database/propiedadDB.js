@@ -13,7 +13,7 @@ var PROP_SCHEMA = new mongoose.Schema({
             required: [true, "propietario es necesario"]
         },
         telefono: {
-            type: Number,
+            type: String,
             required: [true, "El telefono es necesario"]
         },
         ubicacion:[{

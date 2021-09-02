@@ -5,7 +5,7 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         required: [true, "El Nombre es necesario"]
     },
     precio: {
-        type: Number,
+        type: String,
         required: [true, "El precio es necesaria"]
     },
     descripcion: {

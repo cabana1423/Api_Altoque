@@ -165,7 +165,7 @@ router.put("/file", async(req, res, next) => {
     }
     const keyF=uploadRes.key;
     const urlF=uploadRes.Url;
-    PROP.update({"img_prop.key":params.key}, 
+    PROP.updateOne({"img_prop.key":params.key}, 
     {$set: {"img_prop.$[elem]":{"Url":urlF,"key":keyF}}},
     { multi: true,arrayFilters: [{'elem.key': params.key}]}, (err, docs) => {
         if (err) {
@@ -201,6 +201,11 @@ router.get("/",/*midleware,*/ (req, res) => {
     }if(params.id_u!=null){
         var expresion =new RegExp(params.id_u);
         filter["id_user"]=expresion;
+    }
+    if(params.id_vig!=null){
+        var expresion =new RegExp(params.id_vig);
+        filter["id_user"]=expresion;
+        filter["estado"]="vigente";
     }
     if(params.filters!=null){
         select=params.filters.replace(/,/g, " ");
@@ -272,7 +277,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     /*if(bodydata.calle!=null){
         updateobjectdata["hubicacion"]=[{"calle":bodydata.calle,"lat":bodydata.lat,"lon":bodydata.lon}];
     }*/
-    PROP.update({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
+    PROP.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
             return;

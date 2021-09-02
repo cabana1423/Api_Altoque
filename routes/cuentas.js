@@ -14,34 +14,22 @@ router.post("/", /*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
     }
-    // validando usuraio
-    var users=await USERS.find({_id:req.query.id_u});
-    if(users.length==0){
-        res.status(300).json({msn: "el usuario no existe"});
-        return;
-    }
-    var cont;
-    if(params.id.length==params.nombre.length&&params.id.length==params.total.length){
-        cont=params.id.length;
-    }
-    else{
-        res.status(300).json({msn: "Arreglos desiguales "});
-        return;
-    }
+    params.nombre=params.nombre.split(',');
+    params.id=params.id.split(',');
+    params.total=params.total.split(',');
     let vec= new Array();
-    var sum=0;
-    for(var i=0;i<cont;i++)
+    for(var i=0;i<params.nombre.length;i++)
     {
         let productos = {
             "id_p": params.id[i],
             "nombre_p": params.nombre[i],
             "total_p": params.total[i],
           }
-            sum=sum+parseFloat(params.total[i]);
-            vec.push(productos);         
+            vec.push(productos);
     }
     obj["productos"]=vec;
-    obj["TOTALP"]=sum;
+    obj["TOTALP"]=params.totalcont;
+    obj["nota"]=params.nota;
     obj["id_userPed"]=req.query.id_u;
     var contDB = new CONT(obj);
     contDB.save((err, docs) => {
