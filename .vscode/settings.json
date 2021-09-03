@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/afc91f92-a442-4f7c-9c8f-e006f4d078a9/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/Gowin1423",
+    "appService.deploySubpath": "."
+}
