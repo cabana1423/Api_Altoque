@@ -25,7 +25,7 @@ var usersProduc = require('./routes/productos');
 var usersCuentas = require('./routes/cuentas');
 var admin = require('./routes/admin');
 var denuncia = require('./routes/denuncias');
-const { Socket } = require('dgram');
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -39,13 +39,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 /**   LOGICA SOCKET.IO */
 
-
+var client={}
 app.use(cors());
 io.on("connection",(socket)=>{
   console.log("conecatdo :)");
-  console.log(socket.id,"has echo click");
-  socket.on("/test",(msg)=>{
-    console.log(msg);
+  console.log(socket.id,"esta conectado");
+  socket.on("signin",(id)=>{
+    console.log(id);
+    client[id]=socket;
+    console.log(client);
+    socket.on("message",(msg)=>{
+      console.log(msg);
+    });
   });
 });
 
