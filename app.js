@@ -50,6 +50,9 @@ io.on("connection",(socket)=>{
     console.log(client);
     socket.on("message",(msg)=>{
       console.log(msg);
+      let targetId =msg.targetId;
+      if(client[targetId])
+        client[targetId].emit("message",msg);
     });
   });
 });
