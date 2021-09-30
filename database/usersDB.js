@@ -42,7 +42,7 @@ var USERSCHEMA = new mongoose.Schema({
             type: String,
             default: ""
         }
-    }], 
+    }]
     /*limite:{
         type:Number,
         default:0 

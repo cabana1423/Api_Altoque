@@ -25,6 +25,7 @@ var usersProduc = require('./routes/productos');
 var usersCuentas = require('./routes/cuentas');
 var admin = require('./routes/admin');
 var denuncia = require('./routes/denuncias');
+var chats = require('./routes/chats');
 
 
 // view engine setup
@@ -65,6 +66,7 @@ app.use('/produc', usersProduc);
 app.use('/cont', usersCuentas);
 app.use('/admin', admin);
 app.use('/denun', denuncia);
+app.use('/chat', chats);
 
 
 // catch 404 and forward to error handler
