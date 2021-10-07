@@ -15,14 +15,16 @@ router.post("/", /*midleware,*/ async(req, res) => {
     }
     var opc1=params.id+req.query.id_s;
     var opc2=req.query.id_s+params.id;
-    var aux=await CHAT.find({"id_sala":opc1})
-    if(aux.length>0){
+    var aux=await CHAT.findOne({"id_sala":opc1})
+    if(aux!=null){
         addMsg(params.id, opc1,params.mensaje,req, res);
         console.log(aux.length);
         return;
     }
-    var aux=await CHAT.find({"id_sala":opc2})
-    if(aux.length>0){
+
+    //por si no existiera primer id sala
+    var aux=await CHAT.findOne({"id_sala":opc2})
+    if(aux!=null){
         addMsg(params.id,opc2, params.mensaje,req, res);
         return;
     }
@@ -128,6 +130,40 @@ router.get("/",/*midleware,*/ (req, res) => {
     //console.log(filter);
     //console.log("es estes"+select);
     var contDB=CHAT.find(filter).
+    select(select).
+    sort(order);
+    contDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json(docs);
+        return;
+    });
+  });
+  
+  //      GET     chats List
+
+router.get("/list",/*midleware,*/ (req, res) => {
+    var filter={};
+    var params= req.query;
+    var select="";
+    var order = {};
+    if(params.id_u!=null){
+        var expresion =new RegExp(params.id_u);
+        filter["id_u"]=expresion;
+    }
+    if(params.filters!=null){
+        select=params.filters.replace(/,/g, " ");
+    }
+    if (params.order != null) {
+        var data = params.order.split(",");
+        var number = parseInt(data[1]);
+        order[data[0]] = number;
+    }
+    //console.log(filter);
+    //console.log("es estes"+select);
+    var contDB=LISTCHAT.find(filter).
     select(select).
     sort(order);
     contDB.exec((err, docs)=>{
