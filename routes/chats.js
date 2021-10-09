@@ -9,15 +9,15 @@ var sha1 = require("sha1");
 router.post("/", /*midleware,*/ async(req, res) => {
     var obj={};
     params=req.body;
-    if (req.query.id_s == null) {
+    if (req.query.id_2 == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
     }
-    var opc1=params.id+req.query.id_s;
-    var opc2=req.query.id_s+params.id;
+    var opc1=params.id+req.query.id_2;
+    var opc2=req.query.id_2+params.id;
     var aux=await CHAT.findOne({"id_sala":opc1})
     if(aux!=null){
-        addMsg(params.id, opc1,params.mensaje,req, res);
+        addMsg(params.id, opc1,params.mensaje,params.time,req, res);
         console.log(aux.length);
         return;
     }
@@ -25,7 +25,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     //por si no existiera primer id sala
     var aux=await CHAT.findOne({"id_sala":opc2})
     if(aux!=null){
-        addMsg(params.id,opc2, params.mensaje,req, res);
+        addMsg(params.id,opc2, params.mensaje,params.time,req, res);
         return;
     }
     obj["id_sala"]=opc1;
@@ -37,16 +37,16 @@ router.post("/", /*midleware,*/ async(req, res) => {
             return;
         }
         res.json(docs);
-        ListasChat(params.id,req.query.id_s,params.nombre,params.url,opc1,req,res);
+        ListasChat(params.id,req.query.id_2,params.nombre,params.url,params.nombre2,params.url2,opc1,req,res);
         return;
     });
 });
 
-async function addMsg(id_u,id_sala,mensaje,req, res1) {
+async function addMsg(id_u,id_sala,mensaje,time,req, res1) {
          
         var chat =  await CHAT.findOne({"id_sala": id_sala});
         const mens=chat.messages;
-        var obj={"id_u":id_u,"mensaje":mensaje,"time":Date.now};
+        var obj={"id_u":id_u,"mensaje":mensaje,"time":time};
         mens.push(obj);
         CHAT.updateOne({"id_sala":id_sala}, 
             {$set: {"messages":mens}}, (err, docs) => {
@@ -58,14 +58,14 @@ async function addMsg(id_u,id_sala,mensaje,req, res1) {
              });
             return;
 }
-async function ListasChat(id1,id2,nombre,url,id_sala,req,res){
+async function ListasChat(id1,id2,nombre,url,nombre2,url2,id_sala,req,res){
     var list1=await LISTCHAT.findOne({id_u:id1});
     console.log(list1);
     if (list1==null){
-        crearlist(id1,nombre,url,id_sala,req,res);
+        crearlist(id1,nombre2,url2,id_sala,req,res);
     }
     else{
-        pushList(list1,nombre,url,id_sala,req,res);
+        pushList(list1,nombre2,url2,id_sala,req,res);
     }
     var list2=await LISTCHAT.findOne({id_u:id2});
     if (list2==null){
