@@ -17,6 +17,10 @@ var LISTSCHEMA = new mongoose.Schema({
         url: {
             type: String,
             required: [true, "El url es necesario"]
+        },
+        id_2: {
+            type: String,
+            required: [true, "El id2 es necesario"]
         }
     },
     fecha_reg: {
