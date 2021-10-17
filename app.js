@@ -40,22 +40,49 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 /**   LOGICA SOCKET.IO */
 
-var client={}
-app.use(cors());
-io.on("connection",(socket)=>{
-  console.log("conecatdo :)");
-  console.log(socket.id,"esta conectado");
-  socket.on("signin",(id)=>{
-    console.log(id);
-    client[id]=socket;
-    console.log(client);
-    socket.on("message",(msg)=>{
-      console.log(msg);
-      let targetId =msg.targetId;
-      if(client[targetId])
-        client[targetId].emit("message",msg);
-    });
+// var client={}
+// app.use(cors());
+// io.on("connection",(socket)=>{
+//   console.log("conecatdo :)");
+//   console.log(socket.id,"esta conectado");
+//   socket.on("signin",(id)=>{
+//     console.log(id);
+//     client[id]=socket;
+//     console.log(client);
+//     socket.on("message",(msg)=>{
+//       console.log(msg);
+//       let targetId =msg.targetId;
+//       if(client[targetId])
+//         client[targetId].emit("message",msg);
+//     });
+//   });
+// });
+
+io.on('connection', function(socket) {
+  socket.on("signin",(chatID)=>{
+      //Get the chatID of the user and join in a room of the same chatID
+  //chatID = socket.handshake.query.chatID;
+  socket.join(chatID);
+  console.log(socket.id);
+
+  //Leave the room if the user closes the socket
+  socket.on('disconnect', () => {
+      socket.leave(chatID);
+  })
+
+  //Send message to only a particular user
+  socket.on('send_message', message => {
+    console.log(message);
+      id_fin = message.id_fin;
+      id_origen = message.id_origen;
+      content = message.content;
+      time =message.time;
+
+      //Send message to only that particular room
+      socket.in(id_fin).emit('receive_message',message)
+  })
   });
+  
 });
 
 //###   VARIAVLES RUTES ###

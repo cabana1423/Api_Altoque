@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var PRODUC = require("../database/productosDB");
 var PROP = require("../database/propiedadDB");
+var LIKE = require("../database/likesDB");
 const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
 var AWS = require('aws-sdk');
@@ -283,5 +284,103 @@ router.get("/idnot",/*midleware,*/ async(req, res) => {
         res.status(200).json(docs);
         return;
     });
+});
+
+
+
+//      POST    LIKES producto
+router.post("/likes", /*midleware,*/ async(req, res) => {
+    var obj={};
+    var aux=await LIKE.findOne({"id_user":req.query.id_u})
+    if(aux!=null){
+        addLikes(req.query.id_u,req.body.id_producto,res,req);
+        return;
+    }
+    obj["id_user"]=req.query.id_u
+    obj["listaLikes"]={"id_producto":req.body.id_producto};
+    var likeDb = new LIKE(obj);
+    likeDb.save((err, docs) => {
+        if (err) {
+            res.status(300).json(err);
+            return;
+        }
+        res.json(docs);
+        return;
+    });
+
+});
+async function addLikes(id_user,id_producto,res,req) {
+    var lista =  await LIKE.findOne({"id_user": id_user});
+    const like=lista.listaLikes;
+    var obj={"id_producto":id_producto};
+    like.push(obj);
+    LIKE.updateOne({"id_user":id_user}, 
+        {$set: {"listaLikes":like}}, (err, docs) => {
+            if (err) {
+                res.status(500).json({msn: "Existen problemas en la base de datos"});
+                 return;
+             }
+             res.status(200).json(docs);
+         });
+        return;
+}
+// GET LIKES BROOOOO
+router.get("/likes",/*midleware,*/ (req, res) => {
+    var filter={};
+    var params= req.query;
+    var select="";
+    var order = {};
+    if(params.id_u!=null){
+        var expresion =new RegExp(params.id_u);
+        filter["id_user"]=expresion;
+    }
+    if(params.filters!=null){
+        select=params.filters.replace(/,/g, " ");
+    }
+    if (params.order != null) {
+        var data = params.order.split(",");
+        var number = parseInt(data[1]);
+        order[data[0]] = number;
+    }
+    //console.log(filter);
+    //console.log("es estes"+select);
+    var likeDB=LIKE.find(filter).
+    select(select).
+    sort(order);
+    likeDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json(docs);
+        return;
+    });
+  });
+
+  router.post("/deletelike", /*midleware,*/ async(req, res) => {
+    var params = req.query;
+    if (params.id_u == null||params.id_p == null) {
+        res.status(300).json({msn: "El id es necesario"});
+             return;
+    }
+    //imagen up);
+    var like =  await LIKE.findOne({"id_user":params.id_u});
+    var lista =like.listaLikes;
+    console.log(lista)
+    for(var i=0;i<lista.length;i++){
+        if(lista[i].id_producto==params.id_p){
+            lista.splice(i,1);
+            break;
+        }
+    }
+    LIKE.updateOne({"id_user":params.id_u}, 
+    {$set: {"listaLikes":lista}}, (err, docs) => {
+        if (err) {
+            res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         res.status(200).json(docs);
+     });
+    return;
 });
 module.exports = router;
