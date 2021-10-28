@@ -32,6 +32,10 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         type: String,
         required: [true, "la propiedad es necesaria"]
     },
+    numLikes: {
+        type: Number,
+        default:0
+    },
     fecha_reg: {
         type: Date,
         default: new Date()

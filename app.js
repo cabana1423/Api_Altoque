@@ -8,6 +8,7 @@ var app = express();
 var http=require("http");
 const cors =require("cors");
 //const portSocket=process.env.PORT||5000;
+
 var server =http.createServer(app);
 var io=require("socket.io")(server,{
   cors:{
@@ -26,6 +27,7 @@ var usersCuentas = require('./routes/cuentas');
 var admin = require('./routes/admin');
 var denuncia = require('./routes/denuncias');
 var chats = require('./routes/chats');
+var fcm = require('./Notifications_FCM/FirebaseConf');
 
 
 // view engine setup
@@ -94,6 +96,7 @@ app.use('/cont', usersCuentas);
 app.use('/admin', admin);
 app.use('/denun', denuncia);
 app.use('/chat', chats);
+app.use('/fcm', fcm);
 
 
 // catch 404 and forward to error handler

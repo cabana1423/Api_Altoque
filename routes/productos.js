@@ -304,23 +304,50 @@ router.post("/likes", /*midleware,*/ async(req, res) => {
             res.status(300).json(err);
             return;
         }
+        sumLikes(req.body.id_producto,res,req);
         res.json(docs);
-        return;
+        return ;
     });
 
 });
 async function addLikes(id_user,id_producto,res,req) {
-    var lista =  await LIKE.findOne({"id_user": id_user});
-    const like=lista.listaLikes;
-    var obj={"id_producto":id_producto};
-    like.push(obj);
+    var lista =  await LIKE.findOne({_id:id_user},{"listaLikes.id_producto":id_producto});
+
+    if(lista!= null){
+        res.status(500).json({msn: "este producto ya esta agregado"});
+        return ;
+    }
+    // const like=lista.listaLikes;
+    // var obj={"id_producto":id_producto};
+    // like.push(obj);
     LIKE.updateOne({"id_user":id_user}, 
-        {$set: {"listaLikes":like}}, (err, docs) => {
+        {$push: {"listaLikes":{$each:[{"id_producto":id_producto}]}}}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
                  return;
              }
+             sumLikes(req.body.id_producto,res,req);
              res.status(200).json(docs);
+         });
+        return;
+}
+async function sumLikes(id_producto,res,req) {
+    PRODUC.updateOne({_id:id_producto}, 
+        {$inc: {"numLikes":1}}, (err, docs) => {
+            if (err) {
+                console.log("error");
+                 return;
+             }
+         });
+        return;
+}
+async function restLikes(id_producto,res,req) {
+    PRODUC.updateOne({_id:id_producto}, 
+        {$inc: {"numLikes":-1}}, (err, docs) => {
+            if (err) {
+                console.log("error");
+                 return;
+             }
          });
         return;
 }
@@ -363,23 +390,14 @@ router.get("/likes",/*midleware,*/ (req, res) => {
         res.status(300).json({msn: "El id es necesario"});
              return;
     }
-    //imagen up);
-    var like =  await LIKE.findOne({"id_user":params.id_u});
-    var lista =like.listaLikes;
-    console.log(lista)
-    for(var i=0;i<lista.length;i++){
-        if(lista[i].id_producto==params.id_p){
-            lista.splice(i,1);
-            break;
-        }
-    }
     LIKE.updateOne({"id_user":params.id_u}, 
-    {$set: {"listaLikes":lista}}, (err, docs) => {
+    {$pull: {"listaLikes":{"id_producto":params.id_p}}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
          }
          res.status(200).json(docs);
+         restLikes(params.id_p,res,req);
      });
     return;
 });
