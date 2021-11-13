@@ -124,18 +124,29 @@ router.post("/login", async(req, res) => {
       res.status(300).json({msn: "El password es necesario"});
       return;
   }
-  var results = await USERS.find({email: params.email, password: sha1(params.password)});
+  var results = await USERS.findOne({email: params.email, password: sha1(params.password)});
   console.log(results.length);
-  if (results.length == 1) {
+  if (results != null) {
       /*var token =JWT.sign({
           exp:Math.floor(Date.now()/1000)+(60*60*60),
           data:results[0].id
       }, 'PedroCabanaBautistaPotosiBolivia2020');*/
-      res.status(200).json({msn: "Bienvenido al sistema " + params.email + " :) ",
-                            idU:results[0]._id,nombre:results[0].nombre,url:results[0].img_user[0].Url/*,token:token,id:results[0].id*/});
-      return;
+    var tokenFBM =  await USERS.findOne({"tokensFBS.tokenFB":params.tokenFB});
+    if(tokenFBM == null){
+       USERS.updateOne({_id:results._id},
+        {$push: {"tokensFBS":{$each:[{"tokenFB":params.tokenFB}]}}}, (err, docs) => {
+             if (err) {
+                console.log("Existen problemas al ingresar tokenFB");
+                return;
+            }
+        }); 
+    }
+    res.status(200).json({msn: "Bienvenido al sistema " + params.email + " :) ",
+                            idU:results._id,nombre:results.nombre,url:results.img_user[0].Url/*,token:token,id:results[0].id*/});
+    return;
   }
   res.status(300).json({msn: "Credenciales incorrectas"});
+  return
 });
 
 /*        GET users      */

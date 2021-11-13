@@ -65,7 +65,7 @@ io.on('connection', function(socket) {
       //Get the chatID of the user and join in a room of the same chatID
   //chatID = socket.handshake.query.chatID;
   socket.join(chatID);
-  console.log(socket.id);
+  //console.log(socket.id);
 
   //Leave the room if the user closes the socket
   socket.on('disconnect', () => {
@@ -74,7 +74,7 @@ io.on('connection', function(socket) {
 
   //Send message to only a particular user
   socket.on('send_message', message => {
-    console.log(message);
+    //console.log(message);
       id_fin = message.id_fin;
       id_origen = message.id_origen;
       content = message.content;

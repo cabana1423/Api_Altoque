@@ -62,24 +62,24 @@ async function ListasChat(id1,id2,nombre,url,nombre2,url2,id_sala,req,res){
     var list1=await LISTCHAT.findOne({id_u:id1});
     console.log(list1);
     if (list1==null){
-        crearlist(id1,nombre2,url2,id2,id_sala,req,res);
+        crearlist(id1,nombre,nombre2,url2,id2,id_sala,req,res);
     }
     else{
-        pushList(list1,nombre2,url2,id2,id_sala,req,res);
+        pushList(list1,nombre,nombre2,url2,id2,id_sala,req,res);
     }
     var list2=await LISTCHAT.findOne({id_u:id2});
     if (list2==null){
-        crearlist(id2,nombre,url,id1,id_sala,req,res);
+        crearlist(id2,nombre2,nombre,url,id1,id_sala,req,res);
     }
     else{
-        pushList(list2,nombre,url,id1,id_sala,req,res);
+        pushList(list2,nombre2,nombre,url,id1,id_sala,req,res);
     }
     return;
 }
-async function crearlist(id,nombre,url,id2,id_sala,res,req){
+async function crearlist(id,nombre_ori,nombre,url,id2,id_sala,res,req){
     var obj={};
     obj["id_u"]=id;
-    obj["salas"]={"id_salas":id_sala,"nombre":nombre,"url":url,"id_2":id2};
+    obj["salas"]={"id_salas":id_sala,"nombre_ori":nombre_ori,"nombre":nombre,"url":url,"id_2":id2};
     var salaDB = new LISTCHAT(obj);
     salaDB.save((err, docs) => {
         if (err) {

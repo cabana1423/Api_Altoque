@@ -320,6 +320,7 @@ async function addLikes(id_user,id_producto,res,req) {
     // const like=lista.listaLikes;
     // var obj={"id_producto":id_producto};
     // like.push(obj);
+    //AGREGANDO SOLO UN ELEMENTO    
     LIKE.updateOne({"id_user":id_user}, 
         {$push: {"listaLikes":{$each:[{"id_producto":id_producto}]}}}, (err, docs) => {
             if (err) {
@@ -390,6 +391,7 @@ router.get("/likes",/*midleware,*/ (req, res) => {
         res.status(300).json({msn: "El id es necesario"});
              return;
     }
+    // QUITANDO UN ELEMENTO..
     LIKE.updateOne({"id_user":params.id_u}, 
     {$pull: {"listaLikes":{"id_producto":params.id_p}}}, (err, docs) => {
         if (err) {

@@ -2,32 +2,36 @@ var express = require("express");
 var router = express.Router();
 const firebase = require ("firebase-admin");
 const serviceAccount =require('../privatekey.json');
+var USERS = require("../database/usersDB");
 
 firebase.initializeApp({
     credential:firebase.credential.cert(serviceAccount),
 });
 
-router.post("/", /*midleware,*/(req, res) => {
+router.post("/", /*midleware,*/async(req, res) =>  {
 
-    const firebaseToken=req.body.token;
+var tokens=await USERS.findOne({_id:req.body.id_2});
+var listTokens=tokens.tokensFBS;
 
+const firebaseToken=req.body.token;
+console.log(req.body.title.toString());
 const payload={
     notification:{
-        title:'Notification Title',
-        body:'esto es un ejemplo de notificion',
+        title:req.body.title,
+        body:req.body.body,
         click_action:'FLUTTER_NOTIFICATION_CLICK'
     },
     data:{
-        data1:'data1 value',
-        data2:'data2 value',
+        data1:req.body.page,
+        // data2:'data2 value',
     },
 }
 const options={priority:'high',timeTolive:60*60*24,};
-
-firebase.messaging().sendToDevice(firebaseToken,payload,options);
-
+for(var i=0;i<listTokens.length;i++){
+    firebase.messaging().sendToDevice(listTokens[i].tokenFB,payload,options);
+}
 res.status(200).json("mensaje yes");
-    
+return;
 });
 module.exports = router;
 

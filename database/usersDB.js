@@ -42,7 +42,15 @@ var USERSCHEMA = new mongoose.Schema({
             type: String,
             default: ""
         }
-    }]
+    }],
+    tokensFBS: {
+        type:Array,
+        tokenFB:
+        {
+            type: String,
+            required: [true, "El tokenFB es necesario"]
+        }
+    }
     /*limite:{
         type:Number,
         default:0 
