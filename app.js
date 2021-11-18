@@ -28,6 +28,7 @@ var admin = require('./routes/admin');
 var denuncia = require('./routes/denuncias');
 var chats = require('./routes/chats');
 var fcm = require('./Notifications_FCM/FirebaseConf');
+var noti = require('./Notifications_FCM/notifications');
 
 
 // view engine setup
@@ -97,6 +98,7 @@ app.use('/admin', admin);
 app.use('/denun', denuncia);
 app.use('/chat', chats);
 app.use('/fcm', fcm);
+app.use('/noti', noti);
 
 
 // catch 404 and forward to error handler

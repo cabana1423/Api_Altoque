@@ -31,6 +31,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     obj["TOTALP"]=params.totalcont;
     obj["nota"]=params.nota;
     obj["id_userPed"]=req.query.id_u;
+    obj["id_destino"]=params.id_dest;
     var contDB = new CONT(obj);
     contDB.save((err, docs) => {
         if (err) {

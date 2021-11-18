@@ -125,7 +125,7 @@ router.post("/login", async(req, res) => {
       return;
   }
   var results = await USERS.findOne({email: params.email, password: sha1(params.password)});
-  console.log(results.length);
+  console.log(results);
   if (results != null) {
       /*var token =JWT.sign({
           exp:Math.floor(Date.now()/1000)+(60*60*60),

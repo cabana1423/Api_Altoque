@@ -43,6 +43,10 @@ var CUENTASCHEMA = new mongoose.Schema({
     id_userPed: {
         type: String,
         required: [true, "el usuario que realiza el pedido es necesario"]
+    },
+    id_destino: {
+        type: String,
+        required: [true, "el usuario que realiza el pedido es necesario"]
     }
 });
 var CUENTAS = mongoose.model("cuentas", CUENTASCHEMA);
