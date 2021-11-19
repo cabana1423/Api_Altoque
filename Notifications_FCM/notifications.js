@@ -1,14 +1,15 @@
 var express = require("express");
 var router = express.Router();
-var PRODUC = require("../database/productosDB");
+var CONT = require("../database/cuentasDB");
 var PROP = require("../database/propiedadDB");
 var NOTIF = require("../database/notificationsDB");
+var PRODUC = require("../database/productosDB");
 
 router.post("/", /*midleware,*/ async(req, res) => {
     var obj={};
-    var aux=await NOTIF.findOne({"id_user":req.query.id_u})
+    var aux=await NOTIF.findOne({"id_user":req.query.id_u});
     if(aux!=null){
-        addLikes(req.query.id_u,req.body.title,req.body.body,req.body.time,req.body.tipo,res,req);
+        addLikes(req.query.id_u,req.body.title,req.body.body,req.body.time,req.body.tipo,req.body.url,res,req);
         return;
     }
     obj["id_user"]=req.query.id_u
@@ -24,11 +25,11 @@ router.post("/", /*midleware,*/ async(req, res) => {
     });
 
 });
-async function addLikes(id_user,title,body,time,tipo,res,req) {
+async function addLikes(id_user,title,body,time,tipo,url,res,req) {
     //AGREGANDO SOLO UN ELEMENTO
-    // var vec={{'title':title},{'body':body},{'time':time},{'tipo':tipo}}
-    NOTIF.updateOne({"id_user":id_user}, 
-        {$push: {"listaLikes":{$each:[{'title':title},{'body':body},{'time':time},{'tipo':tipo}]}}}, (err, docs) => {
+     //var vec={'title':title,'body':body,'time':time,'tipo':tipo};
+    NOTIF.updateOne({"id_user":id_user},
+        {$push: {"listaNoti":{$each:[{'title':title,'body':body,'time':time,'tipo':tipo,'url':url}]}}}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
                  return;

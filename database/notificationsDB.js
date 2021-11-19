@@ -25,6 +25,16 @@ var NOTIFICATIONS = new mongoose.Schema({
         {
             type:String,
             required:[true, "el tipo es requerida"]
+        },
+        url:
+        {
+            type:String,
+            required:[true, "el url es requerida"]
+        },
+        id_cont:
+        {
+            type:String,
+            default:""
         }
     },
 });

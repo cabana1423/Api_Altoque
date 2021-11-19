@@ -46,8 +46,12 @@ var CUENTASCHEMA = new mongoose.Schema({
     },
     id_destino: {
         type: String,
-        required: [true, "el usuario que realiza el pedido es necesario"]
-    }
+        required: [true, "el usuario que rcibio el pedido es necesario"]
+    },
+    // clave: {
+    //     type: String,
+    //     required: [true, "el usuario que realiza el pedido es necesario"]
+    // }
 });
 var CUENTAS = mongoose.model("cuentas", CUENTASCHEMA);
 module.exports = CUENTAS;

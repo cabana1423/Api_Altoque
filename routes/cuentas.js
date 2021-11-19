@@ -38,7 +38,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
             res.status(300).json(err);
             return;
         }
-        res.json(docs);
+        res.status(200).json({id_cont:docs._id});
         return;
     });
 });
@@ -99,13 +99,8 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var cuenta=await CONT.find({_id:params.id});
-    if(cuenta.length==0){
-        res.status(300).json({msn: "la cuenta no existe"});
-        return;
-    }
-    var cont= CONT.find({_id:params.id});
-    cont.exec((err, docs)=>{
+    var cuent= CONT.findOne({_id:params.id});
+    cuent.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
