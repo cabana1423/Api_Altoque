@@ -19,7 +19,7 @@ var CUENTASCHEMA = new mongoose.Schema({
         total_p:
         {
                 type:String,
-                required:[true, "el precio total es requerida"]
+                required:[true,"el precio total es requerida"]
         }
     },
     TOTALP: {
@@ -27,6 +27,10 @@ var CUENTASCHEMA = new mongoose.Schema({
         required: [true, "necesario el total"]
     },
     nota: {
+        type: String,
+        default:""
+    },
+    estado: {
         type: String,
         default:""
     },

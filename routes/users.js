@@ -65,14 +65,22 @@ router.post("/", async(req, res,next) => {
     obj=userInfo;
     //carga de archivo
     var uploadRes;
+    var keyF;
+    var urlF;
     if(req.files && req.files.media){
         const file= req.files.media;
         uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+         keyF=uploadRes.key;
+         urlF=uploadRes.Url;
         //console.log(uploadRes);    
     }
-    const keyF=uploadRes.key;
-    const urlF=uploadRes.Url;
-    obj["img_user"]=[{"Url":urlF,"key":keyF}];
+    console.log(userInfo.url_img)
+    if(userInfo.url_img==null||userInfo.url_img==undefined){
+        obj["img_user"]=[{"Url":urlF,"key":keyF}];
+    }else{
+        obj["img_user"]=[{"Url":userInfo.url_img}];
+    }
+    
     var userDB = new USERS(obj);
     userDB.save(async(err, docs) => {
         if (err) {
@@ -130,8 +138,6 @@ router.post("/login", async(req, res) => {
           exp:Math.floor(Date.now()/1000)+(60*60*60),
           data:results[0].id
       }, 'PedroCabanaBautistaPotosiBolivia2020');*/
-    var tokenFBM =  await USERS.findOne({"tokensFBS.tokenFB":params.tokenFB});
-    if(tokenFBM == null){
        USERS.updateOne({_id:results._id},
         {$push: {"tokensFBS":{$each:[{"tokenFB":params.tokenFB}]}}}, (err, docs) => {
              if (err) {
@@ -139,9 +145,9 @@ router.post("/login", async(req, res) => {
                 return;
             }
         }); 
-    }
     res.status(200).json({msn: "Bienvenido al sistema " + params.email + " :) ",
-                            idU:results._id,nombre:results.nombre,url:results.img_user[0].Url/*,token:token,id:results[0].id*/});
+                            idU:results._id,nombre:results.nombre+' '+results.apellidos
+                            ,url:results.img_user[0].Url/*,token:token,id:results[0].id*/});
     return;
   }
   res.status(300).json({msn: "Credenciales incorrectas"});
@@ -258,5 +264,24 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     });
 });
+/**         LOGIN SOCIAL */
+router.get("/social_login",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    if (params.email == null) {
+        res.status(300).json({msn: "El parámetro email es necesario"});
+        return;
+    }
+    var user= await USERS.findOne({email:params.email});
+    if(user==null){
+        res.status(300).json({msn: "no_existe"});
+        return;
+    }
+    else{
+        res.status(200).json(user);
+        return;
+    }
+});
+ //async function _send_datas(user){}
 
 module.exports = router;

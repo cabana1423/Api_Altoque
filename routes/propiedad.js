@@ -46,6 +46,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
              return;
     }
     //imagen up
+    console.log(req.files.media.length);
     if(req.files.media.length==undefined){
         req.files.media=[req.files.media];
     }
@@ -68,14 +69,14 @@ router.post("/", /*midleware,*/ async(req, res) => {
     }
     //prop up
     obj["img_prop"]=vect;
-    obj["ubicacion"]=[{"lat":pr.lat,"lon":pr.lon,"calle":pr.calle}];
+    obj["ubicacion"]={"lat":pr.lat,"long":pr.long,"calle":pr.calle};
     obj["id_user"]=params.id;
     var propDB = new PROP(obj);
+    //console.log(obj);
     propDB.save((err, docs) => {
         if (err) {
             borrar(Archs);
-            res.status(300).json(err);
-            return;
+            return res.status(300).json(err);
         }
         res.json(docs);
         return;

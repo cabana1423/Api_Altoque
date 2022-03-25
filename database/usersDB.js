@@ -6,7 +6,8 @@ var USERSCHEMA = new mongoose.Schema({
     },
     apellidos: {
         type: String,
-        required: [true, "Apellidos son necesarios"]
+        default:""
+        //required: [true, "Apellidos son necesarios"]
     },
     email: {
         type: String,
@@ -26,7 +27,7 @@ var USERSCHEMA = new mongoose.Schema({
     },
     fecha_nac: {
         type: String,
-        required: [true, "Falta la fecha de nacimiento"]
+        //required: [true, "Falta la fecha de nacimiento"]
     },
     fecha_reg: {
         type: Date,

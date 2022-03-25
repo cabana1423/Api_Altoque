@@ -42,6 +42,34 @@ router.post("/", /*midleware,*/ async(req, res) => {
         return;
     });
 });
+
+//  ------PUT NOTIFICACIONES-----
+
+router.put("/",/*midleware,*/ async(req, res) => {
+    var params = req.query;
+    var bodydata = req.body;
+    if (params.id == null) {
+        res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }
+    var allowkeylist = ["estado"];
+    var keys = Object.keys(bodydata);
+    var updateobjectdata = {};
+    for (var i = 0; i < keys.length; i++) {
+        if (allowkeylist.indexOf(keys[i]) > -1) {
+            updateobjectdata[keys[i]] = bodydata[keys[i]];
+        }
+    }
+    console.log(updateobjectdata);
+    CONT.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
+       if (err) {
+           res.status(500).json({msn: "Existen problemas en la base de datos"});
+            return;
+        } 
+        res.status(200).json(docs);
+    });
+});
+
 //      GET     cuentas
 
 router.get("/",/*midleware,*/ (req, res) => {

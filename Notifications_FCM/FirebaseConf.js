@@ -46,7 +46,7 @@ else if(req.body.page=="atender_p"){
 async function postNoti(id_user,title,body,time,tipo,url,id_cont,req, res) {
     var obj={};
     var aux=await NOTIF.findOne({"id_user":id_user});
-    console.log(aux);
+    //console.log(aux);
     if(aux!=null){
         addNoti(id_user,title,body,time,tipo,url,id_cont,req,res);
         return;
