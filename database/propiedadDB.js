@@ -16,19 +16,18 @@ var PROP_SCHEMA = new mongoose.Schema({
             type: String,
             required: [true, "El telefono es necesario"]
         },
-        ubicacion:{
-            lat: {
-                type: String, 
-                required: [true, "falta log"]
-            },
-            long: {
-                type: String, 
-                required: [true, "falta lat"]
-            },
-            calle: {
+        location: {
+            type: {
                 type: String,
-                required: [true, "La direccion es necesaria"]
+                default: 'Point',
+            },
+            coordinates: {
+                type: [Number]
             }
+        },
+        calle: {
+            type: String,
+            required: [true, "La direccion es necesaria"]
         },
         img_prop:{
             type:Array,
@@ -55,5 +54,6 @@ var PROP_SCHEMA = new mongoose.Schema({
             default:"vigente"
         }
 });
+PROP_SCHEMA.index({ location: "2dsphere" });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);
 module.exports = PROP;

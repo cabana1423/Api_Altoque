@@ -39,7 +39,11 @@ var PRODUC_SCHEMA = new mongoose.Schema({
     fecha_reg: {
         type: Date,
         default: new Date()
-    }
+    },
+    categoria: {
+        type: String,
+        required: [true, "La categoria del producto es nesesaria "]
+    },
 });
 var PRODUC = mongoose.model("productos", PRODUC_SCHEMA);
 module.exports = PRODUC;

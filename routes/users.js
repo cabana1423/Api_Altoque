@@ -6,6 +6,7 @@ var AWS = require('aws-sdk');
 var sha1 = require("sha1");
 //var JWT=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
+const LIKE = require('../database/likesDB');
 const bucketAws ="usuariosfiles"
 
 router.use(fileUpload({
@@ -138,16 +139,30 @@ router.post("/login", async(req, res) => {
           exp:Math.floor(Date.now()/1000)+(60*60*60),
           data:results[0].id
       }, 'PedroCabanaBautistaPotosiBolivia2020');*/
-       USERS.updateOne({_id:results._id},
+      var existe= false;
+        for(var i=0;i<results.tokensFBS.length;i++){
+            if(results.tokensFBS[i].tokenFB==params.tokenFB){
+                existe=true;
+                break;
+            }
+        }
+    if(existe==false){
+           USERS.updateOne({_id:results._id},
         {$push: {"tokensFBS":{$each:[{"tokenFB":params.tokenFB}]}}}, (err, docs) => {
              if (err) {
                 console.log("Existen problemas al ingresar tokenFB");
                 return;
             }
-        }); 
-    res.status(200).json({msn: "Bienvenido al sistema " + params.email + " :) ",
-                            idU:results._id,nombre:results.nombre+' '+results.apellidos
-                            ,url:results.img_user[0].Url/*,token:token,id:results[0].id*/});
+        });
+    }
+        var likes=await LIKE.findOne({"id_user":results._id});
+        var listaLikes;
+        if(likes!=null){
+            listaLikes=likes.listaLikes;
+        }else{
+            listaLikes=[];
+        }
+        res.status(200).json({msn: "login correcto",res:results,listaLike:listaLikes/*,token:token,id:results[0].id*/});
     return;
   }
   res.status(300).json({msn: "Credenciales incorrectas"});
@@ -164,6 +179,7 @@ router.get("/",/*midleware,*/ (req, res) => {
   if(params.email!=null){
       var expresion =new RegExp(params.email);
       filter["email"]=expresion;
+      console.log(filter);
   }
   if(params.filters!=null){
       select=params.filters.replace(/,/g, " ");
@@ -278,7 +294,30 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
         return;
     }
     else{
-        res.status(200).json(user);
+        var existe= false;
+        for(var i=0;i<user.tokensFBS.length;i++){
+            if(user.tokensFBS[i].tokenFB==params.tkFB){
+                existe=true;
+                break;
+            }
+        }
+        if(existe==false){
+                   USERS.updateOne({_id:user._id},
+        {$push: {"tokensFBS":{$each:[{"tokenFB":params.tkFB}]}}}, (err, docs) => {
+             if (err) {
+                console.log("Existen problemas al ingresar tokenFB");
+                return;
+            }
+        });
+        }
+        var likes=await LIKE.findOne({"id_user":user._id});
+        var listaLikes;
+        if(likes!=null){
+            listaLikes=likes.listaLikes;
+        }else{
+            listaLikes=[];
+        }
+        res.status(200).json({res:user,listaLike:listaLikes});
         return;
     }
 });

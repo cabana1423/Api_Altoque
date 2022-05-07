@@ -76,6 +76,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
         if (err) {
             borrar(Archs);
             res.status(300).json(err);
+            console.log(err);
             return;
         }
         res.json(docs);
@@ -164,7 +165,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
 });
 
 
-/*        GET prop      */
+/*        GET prod      */
 router.get("/",/*midleware,*/ (req, res) => {
     var filter={};
     var params= req.query;
@@ -305,30 +306,29 @@ router.post("/likes", /*midleware,*/ async(req, res) => {
             return;
         }
         sumLikes(req.body.id_producto,res,req);
-        res.json(docs);
+        res.json({lista:docs.listaLikes});
         return ;
     });
 
 });
 async function addLikes(id_user,id_producto,res,req) {
-    var lista =  await LIKE.findOne({_id:id_user},{"listaLikes.id_producto":id_producto});
-
-    if(lista!= null){
-        res.status(500).json({msn: "este producto ya esta agregado"});
-        return ;
-    }
-    // const like=lista.listaLikes;
-    // var obj={"id_producto":id_producto};
-    // like.push(obj);
+    // var lista =  await LIKE.findOne({"listaLikes.id_producto":id_producto});
+    // id_producto
+    // if(lista!= null){
+    //     res.status(500).json({msn: "este producto ya esta agregado"});
+    //     console.log(' este producto existe');
+    //     return ;
+    // }
     //AGREGANDO SOLO UN ELEMENTO    
     LIKE.updateOne({"id_user":id_user}, 
-        {$push: {"listaLikes":{$each:[{"id_producto":id_producto}]}}}, (err, docs) => {
+        {$push: {"listaLikes":{$each:[{"id_producto":id_producto}]}}}, async(err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
                  return;
              }
              sumLikes(req.body.id_producto,res,req);
-             res.status(200).json(docs);
+             var listas =  await LIKE.findOne({'id_user':id_user});
+             res.status(200).json({msn:docs,lista:listas.listaLikes});
          });
         return;
 }
@@ -393,13 +393,14 @@ router.get("/likes",/*midleware,*/ (req, res) => {
     }
     // QUITANDO UN ELEMENTO..
     LIKE.updateOne({"id_user":params.id_u}, 
-    {$pull: {"listaLikes":{"id_producto":params.id_p}}}, (err, docs) => {
+    {$pull: {"listaLikes":{"id_producto":params.id_p}}}, async(err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
          }
-         res.status(200).json(docs);
+         var listas =  await LIKE.findOne({'id_user':params.id_u});
          restLikes(params.id_p,res,req);
+         res.status(200).json({msn:docs,lista:listas.listaLikes});
      });
     return;
 });

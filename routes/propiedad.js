@@ -4,6 +4,7 @@ const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
 var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
+var PRODUC = require("../database/productosDB");
 const bucketAws ="propiedadesfiles"
 //var midleware=require("./midleware");
 router.use(fileUpload({
@@ -59,7 +60,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     for(var i=0;i<tamanio;i++){
         if(req.files && req.files.media[i]){
             const file= req.files.media[i];
-            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
+            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
             let arch={
                 "Key":uploadRes.key
             }
@@ -69,7 +70,8 @@ router.post("/", /*midleware,*/ async(req, res) => {
     }
     //prop up
     obj["img_prop"]=vect;
-    obj["ubicacion"]={"lat":pr.lat,"long":pr.long,"calle":pr.calle};
+    obj["location"]={coordinates:[req.body.long,req.body.lat]};
+    //obj["ubicacion"]={"lat":pr.lat,"long":pr.long,"calle":pr.calle};
     obj["id_user"]=params.id;
     var propDB = new PROP(obj);
     //console.log(obj);
@@ -254,9 +256,24 @@ router.delete("/",/*midleware,*/ async(req, res) => {
          if(docs.deletedCount==1){
             borrar(vec);
          }
+         delete_productos(req.query.id)
          res.status(200).json(docs);
      });
 });
+
+//      BORAR PRODUCTOS SEGUN PROP//
+async function delete_productos(id_prop){
+    PRODUC.remove({"id_prop":id_prop}, (err, docs) => {
+        if (err) {
+            console.log(err);
+            // res.status(500).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         console.log(docs);
+         //res.status(200).json(docs);
+     });
+
+}
     
  /*        PUT prop      */
 
@@ -308,5 +325,39 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     });
 });
+
+//      GET POR DISTANCIA
+//var exp=new RegExp(params.dist);
+router.get("/dist",/*midleware,*/(req, res) => {
+    //var obj={}
+    var params= req.query; 
+    var distan=9000
+    if(params.dist!=null){
+       distan=params.dist
+        console.log(distan);
+    }
+    var dist=PROP.find(
+    {"nombre":RegExp(params.pal),
+        location: {
+         $near: {
+          $maxDistance: distan,
+          $geometry: {
+           type: "Point",
+           coordinates: [params.long, params.lat]
+          }
+         }
+        }
+       },
+       );
+    dist.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: err});
+            return;
+        }
+        res.status(200).json(docs);
+        return;
+    });
+});
+
 
 module.exports = router;
