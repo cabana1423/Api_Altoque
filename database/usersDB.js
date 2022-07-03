@@ -52,7 +52,11 @@ var USERSCHEMA = new mongoose.Schema({
             required: [true, "El tokenFB es necesario"]
         },
         default:[]
-    }
+    },
+    estado: {
+        type: String,
+        //required: [true, "Falta la fecha de nacimiento"]
+    },
     /*limite:{
         type:Number,
         default:0 

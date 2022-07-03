@@ -12,7 +12,7 @@ firebase.initializeApp({
 router.post("/", /*midleware,*/async(req, res) =>  {
 var tokens=await USERS.findOne({_id:req.body.id_2});
 var listTokens=tokens.tokensFBS;
-console.log(tokens)
+//console.log(tokens)
 
 //const firebaseToken=req.body.token;
 

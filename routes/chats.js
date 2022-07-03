@@ -13,12 +13,12 @@ router.post("/", /*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
     }
-    var opc1=params.id+req.query.id_2;
-    var opc2=req.query.id_2+params.id;
+    var opc1=params.id+params.id_prop;
+    var opc2=params.id_prop+params.id;
     var aux=await CHAT.findOne({"id_sala":opc1})
     if(aux!=null){
         addMsg(params.id, opc1,params.mensaje,params.time,req, res);
-        console.log(aux.length);
+        //console.log(aux.length);
         return;
     }
 
@@ -37,7 +37,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
             return;
         }
         res.json(docs);
-        ListasChat(params.id,req.query.id_2,params.nombre,params.url,params.nombre2,params.url2,opc1,req,res);
+        ListasChat(params.id,req.query.id_2,params.nombre,params.url,params.nombre2,params.url2,opc1,params.id_prop,req,res);
         return;
     });
 });
@@ -58,44 +58,40 @@ async function addMsg(id_u,id_sala,mensaje,time,req, res1) {
              });
             return;
 }
-async function ListasChat(id1,id2,nombre,url,nombre2,url2,id_sala,req,res){
+async function ListasChat(id1,id2,nombre,url,nombre2,url2,id_sala,id_prop,req,res){
     var list1=await LISTCHAT.findOne({id_u:id1});
-    console.log(list1);
+    //console.log(list1);
     if (list1==null){
-        crearlist(id1,nombre,nombre2,url2,id2,id_sala,req,res);
+        crearlist(id1,nombre,nombre2,url2,id2,id_sala,id_prop,req,res);
     }
     else{
-        pushList(list1,nombre,nombre2,url2,id2,id_sala,req,res);
+        pushList(list1,nombre,nombre2,url2,id2,id_sala,id_prop,req,res);
     }
     var list2=await LISTCHAT.findOne({id_u:id2});
     if (list2==null){
-        crearlist(id2,nombre2,nombre,url,id1,id_sala,req,res);
+        crearlist(id2,nombre2,nombre,url,id1,id_sala,id_prop,req,res);
     }
     else{
-        pushList(list2,nombre2,nombre,url,id1,id_sala,req,res);
+        pushList(list2,nombre2,nombre,url,id1,id_sala,id_prop,req,res);
     }
     return;
 }
-async function crearlist(id,nombre_ori,nombre,url,id2,id_sala,res,req){
+async function crearlist(id,nombre_ori,nombre,url,id2,id_sala,id_prop,res,req){
     var obj={};
     obj["id_u"]=id;
-    obj["salas"]={"id_salas":id_sala,"nombre_ori":nombre_ori,"nombre":nombre,"url":url,"id_2":id2};
+    obj["salas"]={"id_sala":id_sala,"nombre_ori":nombre_ori,"nombre":nombre,"url":url,"id_2":id2,"id_prop_d":id_prop};
     var salaDB = new LISTCHAT(obj);
     salaDB.save((err, docs) => {
         if (err) {
             //res.status(300).json(err);
             console.log(err);
         }
-        // else{
-        //     //console.log(docs);
-        // //res.json(docs);
-        // }
         
     });
 }
-async function pushList(list,nombre,url,id1,id_sala,res,req){
+async function pushList(list,nombre_ori,nombre,url,id1,id_sala,id_prop,res,req){
         const sala=list.salas;
-        var obj={"id_sala":id_sala,"nombre":nombre,"url":url,"id_2":id1};
+        var obj={"id_sala":id_sala,"nombre_ori":nombre_ori,"nombre":nombre,"url":url,"id_2":id1,"id_prop_d":id_prop};
         sala.push(obj);
         LISTCHAT.updateOne({"id_u":list.id_u}, 
             {$set: {"salas":sala}}, (err, docs) => {
@@ -103,7 +99,7 @@ async function pushList(list,nombre,url,id1,id_sala,res,req){
                     //res1.status(500).json({msn: "Existen problemas en la base de datos"});
                      console.log(err);
                  }
-                // console.log(docs);            
+                // console.log(docs);
             });
 }
 

@@ -114,7 +114,8 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
             var ke=[{"Key":uploadRes.key}];
             borrar(ke);
          }
-         res.status(200).json(docs);
+         res.status(200).json({msn:img[1]});
+         console.log(img[1]);
      });
     return;
 });
@@ -128,7 +129,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
     }
     //imagen up
     var prop =  await PROP.find({"img_prop.key":params.k});
-    console.log(prop);
+    //console.log(prop);
     var img=prop[0].img_prop;
     for(var i=0;i<img.length;i++){
         if(img[i].key==params.k){
@@ -136,7 +137,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
             break;
         }
     }
-    console.log(img);
+    //console.log(img);
     PROP.update({"img_prop.key":params.k},
     {$set: {"img_prop":img}}, (err, docs) => {
         if (err) {
@@ -160,7 +161,7 @@ router.put("/file", async(req, res, next) => {
         return;
     }
     var prop =  await PROP.find({"img_prop.key":params.key});
-    console.log(prop);
+    //console.log(prop);
     var uploadRes;
     if(req.files && req.files.media){
         const file= req.files.media;
@@ -315,7 +316,7 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var prop= PROP.find({_id:params.id});
+    var prop= PROP.findOne({_id:params.id});
     prop.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});

@@ -25,6 +25,10 @@ var LISTSCHEMA = new mongoose.Schema({
         nombre_ori: {
             type: String,
             required: [true, "El nombre destino es necesario"]
+        },
+        id_prop_d: {
+            type: String,
+            required: [true, "El id_propiedad destino es necesario"]
         }
 
     },

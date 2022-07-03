@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
+const mailer =require('../send_email/signup_email');
 var AWS = require('aws-sdk');
 var sha1 = require("sha1");
 //var JWT=require("jsonwebtoken");
@@ -44,16 +45,16 @@ async function borrar(keyF){
 router.post("/", async(req, res,next) => {
     // user datos
     var obj={};
-    var userInfo = req.body;
-    if (userInfo.password == null) {
+    var params = req.body;
+    if (params.password == null) {
         res.status(300).json({msn: "El password es necesario pra continuar con el registro"});
         return;
     }
-    if ((userInfo.password.length < 6)) {
+    if ((params.password.length < 6)) {
         res.status(300).json({msn: "passwword debe tener almenos 6 caracteres"});
         return;
     }
-    if (!/[A-Z]+/.test(userInfo.password)) {
+    if (!/[A-Z]+/.test(params.password)) {
         res.status(300).json({msn: "El password necesita una letra Mayuscula"});
         
         return;
@@ -62,8 +63,8 @@ router.post("/", async(req, res,next) => {
         res.status(300).json({msn: "Necesita un caracter especial"});
         return;
     }*/
-    userInfo.password = sha1(userInfo.password);
-    obj=userInfo;
+    params.password = sha1(params.password);
+    obj=params;
     //carga de archivo
     var uploadRes;
     var keyF;
@@ -75,12 +76,17 @@ router.post("/", async(req, res,next) => {
          urlF=uploadRes.Url;
         //console.log(uploadRes);    
     }
-    console.log(userInfo.url_img)
-    if(userInfo.url_img==null||userInfo.url_img==undefined){
+    //console.log(userInfo.url_img)
+    
+    if(params.url_img==null||params.url_img==undefined){
         obj["img_user"]=[{"Url":urlF,"key":keyF}];
     }else{
-        obj["img_user"]=[{"Url":userInfo.url_img}];
+        obj["img_user"]=[{"Url":params.url_img}];
     }
+    var aleatorio;
+    if(params.est==''){
+         aleatorio = Math.round(Math.random()*999999);
+    obj['estado']=String(aleatorio);}
     
     var userDB = new USERS(obj);
     userDB.save(async(err, docs) => {
@@ -88,12 +94,18 @@ router.post("/", async(req, res,next) => {
             //delete file
             borrar(keyF);
             res.status(300).json(err);
+            //console.log(err)
             return;
         }
-        res.json(docs);
+        if (params.est=='') {
+            mailer.enviar_mail(params.email,aleatorio,params.nombre,res);
+        }
+        res.status(200).json(docs);
         return;
     });
 });
+
+
 //      PUT img users
 router.put("/file", async(req, res, next) => {
     var params = req.query;
@@ -135,6 +147,10 @@ router.post("/login", async(req, res) => {
   }
   var results = await USERS.findOne({email: params.email, password: sha1(params.password)});
   if (results != null) {
+      if (results.estado!='verificada') {
+        res.status(300).json({msn: "la cuenta no esta verificada",res:results});
+        return;
+      }
       /*var token =JWT.sign({
           exp:Math.floor(Date.now()/1000)+(60*60*60),
           data:results[0].id
@@ -162,7 +178,7 @@ router.post("/login", async(req, res) => {
         }else{
             listaLikes=[];
         }
-        res.status(200).json({msn: "login correcto",res:results,listaLike:listaLikes/*,token:token,id:results[0].id*/});
+        res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:listaLikes/*,token:token,id:results[0].id*/});
     return;
   }
   res.status(300).json({msn: "Credenciales incorrectas"});
@@ -176,6 +192,7 @@ router.get("/",/*midleware,*/ (req, res) => {
   var params= req.query;
   var select="";
   var order = {};
+  //console.log(res.body.estado);
   if(params.email!=null){
       var expresion =new RegExp(params.email);
       filter["email"]=expresion;
@@ -294,6 +311,7 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
         return;
     }
     else{
+
         var existe= false;
         for(var i=0;i<user.tokensFBS.length;i++){
             if(user.tokensFBS[i].tokenFB==params.tkFB){
@@ -317,10 +335,50 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
         }else{
             listaLikes=[];
         }
-        res.status(200).json({res:user,listaLike:listaLikes});
+        res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:listaLikes});
         return;
     }
 });
  //async function _send_datas(user){}
+
+ router.post("/verifi-mail", async(req, res, next) => {
+    var params = req.body;
+    //console.log(params);
+    var usuario=await  USERS.findOne({_id:params.id});
+    // console.log(usuario.estado);
+    if (usuario==null) {
+        res.status(300).json({msn: "El usuario no esta registrado"});
+        return
+    }
+    //console.log(usuario);
+    if(usuario.estado==params.codigo){
+        USERS.updateOne({_id:  params.id}, {$set: {'estado':"verificada"}}, (err, docs) => {
+            if (err) {
+                res.status(500).json({msn: "error en la base de datos"});
+                 return;
+             } 
+             res.status(200).json({msn:'cuenta verificada'});
+         });
+    }else{
+        res.status(300).json({msn: "codigo incorrecto"});
+    }
+    return;
+
+});
+
+router.post("/reverifi", async(req, res, next) => {
+    var params = req.body;
+    var aleatorio = Math.round(Math.random()*999999);
+    mailer.enviar_mail(params.email,aleatorio,params.nombre,res);
+    //console.log(aleatorio);
+    USERS.updateOne({_id:  params.id}, {$set: {'estado':aleatorio}}, (err, docs) => {
+            if (err) {
+                res.status(500).json({msn: "error en la base de datos"});
+                 return;
+             } 
+             res.status(200).json({msn:'codigo actualizado'});
+         });
+
+});
 
 module.exports = router;
