@@ -14,7 +14,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
              return;
     }
     var opc1=params.id+params.id_prop;
-    var opc2=params.id_prop+params.id;
+    var opc2=req.query.id_2+params.id_prop;
     var aux=await CHAT.findOne({"id_sala":opc1})
     if(aux!=null){
         addMsg(params.id, opc1,params.mensaje,params.time,req, res);
@@ -30,6 +30,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     }
     obj["id_sala"]=opc1;
     obj["messages"]={"id_u":params.id,"mensaje":params.mensaje,"time":params.time};
+    obj['ultimaConeccion']=[{"id_u":params.id,"hora":'',},{"id_u":req.query.id_2,"hora":'',}];
     var chatDB = new CHAT(obj);
     chatDB.save((err, docs) => {
         if (err) {
@@ -134,9 +135,12 @@ router.get("/",/*midleware,*/ (req, res) => {
             return;
         }
         res.status(200).json(docs);
+        // console.log('aqui chats')
+        // console.log(docs)
         return;
     });
   });
+
   
   //      GET     chats List
 
@@ -172,7 +176,7 @@ router.get("/list",/*midleware,*/ (req, res) => {
     });
   });
 
-//  DELETE      cuentas     ;)
+//  DELETE      CHATS     ;)
 
 router.delete("/",/*midleware,*/ async(req, res) => {
     if (req.query.id == null) {
@@ -209,6 +213,44 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(200).json(docs);
         return;
     });
+});
+
+//          MOSTRAR SALA MAS CHATS DATOS
+router.get("/salaschat", /*midleware,*/ async(req, res) => {
+    var listaMasDatos=[];
+    params=req.body;
+    var listaSalas=await LISTCHAT.findOne({'id_u':req.query.id});
+    if (listaSalas!=null) {
+        for(var i=0;i<listaSalas.salas.length;i++){
+        var obj={};
+        var chats=await CHAT.findOne({'id_sala':listaSalas.salas[i].id_sala});
+        var mensaje=chats.messages[chats.messages.length-1].mensaje;
+        var time=chats.messages[chats.messages.length-1].time;
+        obj=listaSalas.salas[i];
+        obj['mensaje']=mensaje;
+        obj['time']=time;
+        listaMasDatos.push(obj);
+        }
+        return res.status(200).json(listaMasDatos);
+    }
+    return res.status(500).json({msn: "No hay datos que mostrar"});
+    //console.log(listaMasDatos);
+});
+router.put("/updateUltm", /*midleware,*/ async(req, res) => {
+    params=req.query;
+    if(params.id_u==null){
+        return res.status(500).json({msn: "id necesario"});
+    }
+    console.log(params)
+    CHAT.update({"id_sala":params.id_s}, 
+    {$set: {"ultimaConeccion.$[elem]":{'id_u': params.id_u,"hora":req.body.ultm}}},
+    { multi: true,arrayFilters: [{'elem.id_u': params.id_u}]}, (err, docs) => {
+        if (err) {
+            console.log("Existen problemas al ingresar tokenFB");
+             return;
+         }
+         return  res.status(200).json(docs);
+     })
 });
 
 module.exports = router;

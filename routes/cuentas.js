@@ -1,7 +1,8 @@
 var express = require("express");
 var router = express.Router();
 var CONT = require("../database/cuentasDB");
-var USERS = require("../database/usersDB");
+var PROP = require("../database/propiedadDB");
+var NOTI = require("../database/notificationsDB");
 var sha1 = require("sha1");
 const fs = require('fs');
 //var midleware=require("./midleware");
@@ -60,13 +61,34 @@ router.put("/",/*midleware,*/ async(req, res) => {
             updateobjectdata[keys[i]] = bodydata[keys[i]];
         }
     }
-    console.log(updateobjectdata);
+    //console.log(updateobjectdata);
     CONT.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
             return;
-        } 
+        }
+        NOTI.findOneAndUpdate({_id: params.idNot},
+            {
+              $set: {[`listaNoti.$[outer].estado`]: bodydata.estado}
+            },
+            {
+              "arrayFilters": [{ "outer.id_cont": params.id }]
+            },(err, docs) => {
+                        if (err) {
+                            console.log('error en la bd notificaciones')
+                            return;
+                        }
+            });
+        // ({_id:params.idNot},         
+        //     {$set: {"listaNoti.$[elem]":{"listaNoti.estado":bodydata.estado}}},
+        //     { arrayFilters: [{'elem.id_cont': params.id}]}, (err, docs) => {
+        //         if (err) {
+        //             console.log('error en la bd notificaciones')
+        //             return;
+        //         }
+        //  });
         res.status(200).json(docs);
+        return;
     });
 });
 
@@ -123,17 +145,21 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 router.get("/id",/*midleware,*/ async(req, res) => {
 
     var params= req.query;
+    console.log(params);
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
+    var propiedad=await PROP.findOne({_id:params.idT});
+    console.log(propiedad);
+    
     var cuent= CONT.findOne({_id:params.id});
     cuent.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
         }
-        res.status(200).json(docs);
+        res.status(200).json({cuentas:docs,propiedad:propiedad});
         return;
     });
 });

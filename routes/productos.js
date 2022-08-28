@@ -122,7 +122,8 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
          if(docs.nModified==0){
             borrar(vect);
          }
-         res.status(200).json(docs);
+         res.status(200).json(img);
+         console.log(img);
      });
     return;
 });
@@ -159,10 +160,10 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
             }
             borrar(keys);
          }
-         res.status(200).json(docs);
+         res.status(200).json(img);
      });
     return;
-});
+});     
 
 
 /*        GET prod      */

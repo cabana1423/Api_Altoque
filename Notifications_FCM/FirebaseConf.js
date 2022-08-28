@@ -33,28 +33,28 @@ for(var i=0;i<listTokens.length;i++){
 }
 
 if(req.body.page=="mensajeria"){
-    postNoti(req.body.id_2,req.body.title,req.body.body,req.body.time,req.body.page,req.body.url,req.body.id_cont,req,res);
+    //postNoti(req.body.id_2,req.body.title,req.body.body,req.body.time,req.body.page,req.body.url,req.body.id_cont,req,res);
     return;
 }
-else if(req.body.page=="atender_p"){
-    postNoti(req.body.id_2,req.body.title,req.body.body,req.body.time,req.body.page,req.body.url,req.body.id_cont,req,res);
+else {
+    postNoti(req.body.id_tienda,req.body.id_2,req.body.title,req.body.body,req.body.time,req.body.page,req.body.url,req.body.id_cont,req,res);
     return;
 }
 // res.status(200).json("mensaje yes");
-// return;
+ //return;
 });
 
-async function postNoti(id_user,title,body,time,tipo,url,id_cont,req, res) {
+async function postNoti(id_tienda,id_user,title,body,time,tipo,url,id_cont,req, res) {
     var obj={};
     var aux=await NOTIF.findOne({"id_user":id_user});
     //console.log(aux);
     if(aux!=null){
-        addNoti(id_user,title,body,time,tipo,url,id_cont,req,res);
+        addNoti(id_tienda,id_user,title,body,time,tipo,url,id_cont,req,res);
         return;
     }
     var lista={};
     obj["id_user"]=id_user
-    obj["listaNoti"]={'title':title,'body':body,'time':time,'tipo':tipo,'url':url,'id_cont':id_cont};
+    obj["listaNoti"]={'id_tienda':id_tienda,'title':title,'body':body,'time':time,'tipo':tipo,'url':url,'id_cont':id_cont,'estado':''};
     var notiDb = new NOTIF(obj);
     notiDb.save((err, docs) => {
         if (err) {
@@ -67,11 +67,11 @@ async function postNoti(id_user,title,body,time,tipo,url,id_cont,req, res) {
     });
 
 }
-async function addNoti(id_user,title,body,time,tipo,url,id_cont,req,res) {
+async function addNoti(id_tienda,id_user,title,body,time,tipo,url,id_cont,req,res) {
     //AGREGANDO SOLO UN ELEMENTO
      //var vec={'title':title,'body':body,'time':time,'tipo':tipo};
     NOTIF.updateOne({"id_user":id_user}, 
-        {$push: {"listaNoti":{$each:[{'title':title,'body':body,'time':time,'tipo':tipo,'url':url,'id_cont':id_cont}]}}}, (err, docs) => {
+        {$push: {"listaNoti":{$each:[{'id_tienda':id_tienda,'title':title,'body':body,'time':time,'tipo':tipo,'url':url,'id_cont':id_cont,'estado':''}]}}}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
                  return;

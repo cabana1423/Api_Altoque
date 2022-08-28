@@ -160,7 +160,7 @@ router.put("/file", async(req, res, next) => {
         res.status(300).json({msn: "Error es necesario el key"});
         return;
     }
-    var prop =  await PROP.find({"img_prop.key":params.key});
+    //var prop =  await PROP.find({"img_prop.key":params.key});
     //console.log(prop);
     var uploadRes;
     if(req.files && req.files.media){
@@ -285,7 +285,7 @@ async function delete_productos(id_prop){
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["nombre","nit","propietario","telefono"];
+    var allowkeylist = ["nombre","nit","propietario","telefono","estado"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -298,7 +298,7 @@ async function delete_productos(id_prop){
     }*/
     PROP.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
-           res.status(500).json({msn: "Existen problemas en la base de datos"});
+           res.status(500).json({msn: "no se pudo completar la operación"});
             return;
         } 
         res.status(200).json(docs);

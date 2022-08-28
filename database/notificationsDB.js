@@ -35,7 +35,17 @@ var NOTIFICATIONS = new mongoose.Schema({
         {
             type:String,
             default:""
-        }
+        },
+        id_tienda:
+        {
+            type:String,
+            required:[true, "el id tienda es requerida"]
+        },
+        estado:
+        {
+            type:String,
+            default:''
+        },
     },
 });
 var NOTI = mongoose.model("notificactions", NOTIFICATIONS);

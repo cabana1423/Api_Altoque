@@ -27,6 +27,7 @@ var USERSCHEMA = new mongoose.Schema({
     },
     fecha_nac: {
         type: String,
+        default:''
         //required: [true, "Falta la fecha de nacimiento"]
     },
     fecha_reg: {
@@ -55,7 +56,28 @@ var USERSCHEMA = new mongoose.Schema({
     },
     estado: {
         type: String,
+        default:''
         //required: [true, "Falta la fecha de nacimiento"]
+    },
+    tipo: {
+        type: String,
+        default:'normal'
+        //required: [true, "Falta la fecha de nacimiento"]
+    },
+    // zonaHoraria: {
+    //     type: Number,
+    //     //required: [true, "Apellidos son necesarios"]
+    // },
+    estIcons:{
+        mensajeria:
+        {
+            type:String,
+            default: ""
+        },
+        notifi: {
+            type: String,
+            default: ""
+        }
     },
     /*limite:{
         type:Number,

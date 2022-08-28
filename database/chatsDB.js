@@ -19,6 +19,17 @@ var CHATSCHEMA = new mongoose.Schema({
             default:Date.now,
         }
     },
+    ultimaConeccion:{
+        type:Array,
+        id_u:
+        {
+            type:String,
+            required:[true, "el id_u es requerida"]
+        },
+        hora: {
+            type: String,
+        },
+    },
     fecha_reg: {
         type: Date,
         default: new Date()

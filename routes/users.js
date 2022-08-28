@@ -171,6 +171,12 @@ router.post("/login", async(req, res) => {
             }
         });
     }
+    // USERS.updateOne({_id:results._id}, {$set: {"zonaHoraria":params.zt}}, (err, docs) => {
+    //     if (err) {
+    //         console.log("Existen problemas al ingresar ZonaHoraria");
+    //          return;
+    //      } 
+    //  })
         var likes=await LIKE.findOne({"id_user":results._id});
         var listaLikes;
         if(likes!=null){
@@ -179,9 +185,9 @@ router.post("/login", async(req, res) => {
             listaLikes=[];
         }
         res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:listaLikes/*,token:token,id:results[0].id*/});
-    return;
+        return;
   }
-  res.status(300).json({msn: "Credenciales incorrectas"});
+  res.status(300).json({msn: "noExiste"});
   return
 });
 
@@ -243,6 +249,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
  router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
+    //console.log(bodydata);
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
@@ -254,12 +261,24 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         }
         if (!/[A-Z]+/.test(bodydata.password)) {
             res.status(300).json({msn: "El password necesita una letra Mayuscula"});
-            
             return;
         }
         bodydata.password = sha1(bodydata.password);
     }
-    var allowkeylist = ["nombre","apellidos","password","tokenFB"];
+    var user= await USERS.findOne({email:bodydata.email});
+    if (user!=null) {
+        res.status(300).json({msn: "Una cuenta ya existe con este correo"});
+        return
+    }
+    if(bodydata.lastpass!=''){
+        var user= await USERS.findOne({_id:params.id});
+        //console.log(user)
+        if(sha1(bodydata.lastpass)!=user.password){
+            res.status(300).json({msn: "Contraseña actual no es correcta"});
+            return;
+        }
+    }
+    var allowkeylist = ["nombre","apellidos","password","tokenFB","email","fecha_nac"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -320,14 +339,20 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
             }
         }
         if(existe==false){
-                   USERS.updateOne({_id:user._id},
-        {$push: {"tokensFBS":{$each:[{"tokenFB":params.tkFB}]}}}, (err, docs) => {
-             if (err) {
-                console.log("Existen problemas al ingresar tokenFB");
-                return;
-            }
-        });
+                   USERS.update({_id:user._id},
+            {$push: {"tokensFBS":{$each:[{"tokenFB":params.tkFB}]}}},(err, docs) => {
+                if (err) {
+                    console.log("Existen problemas al ingresar tokenFB");
+                    return;
+                }
+            }); 
         }
+        // USERS.updateOne({_id:  user._id}, {$set: {"zonaHoraria":params.zt}}, (err, docs) => {
+        //     if (err) {
+        //         console.log("Existen problemas al ingresar tokenFB");
+        //          return;
+        //      } 
+        //  });
         var likes=await LIKE.findOne({"id_user":user._id});
         var listaLikes;
         if(likes!=null){

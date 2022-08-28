@@ -38,7 +38,7 @@ async function addLikes(id_user,title,body,time,tipo,url,res,req) {
          });
         return;
 }
-// GET LIKES BROOOOO
+// GET NOTIFICACIONES BROOOOO
 router.get("/",/*midleware,*/ (req, res) => {
     var filter={};
     var params= req.query;
@@ -89,4 +89,5 @@ router.get("/",/*midleware,*/ (req, res) => {
      });
     return;
 });
+
 module.exports = router;

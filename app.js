@@ -62,19 +62,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 //     });
 //   });
 // });
-
+var ids=[];
 io.on('connection', function(socket) {
   socket.on("signin",(chatID)=>{
       //Get the chatID of the user and join in a room of the same chatID
   //chatID = socket.handshake.query.chatID;
   socket.join(chatID);
-  //console.log(socket.id);
-
+  ids.push(chatID);
+  //console.log(chatID);
   //Leave the room if the user closes the socket
   socket.on('disconnect', () => {
       socket.leave(chatID);
+      ids = ids.filter(function(i) { return i !== chatID });
+            //console.log(ids)
   })
-
   //Send message to only a particular user
   socket.on('send_message', message => {
     //console.log(message);
@@ -85,9 +86,24 @@ io.on('connection', function(socket) {
 
       //Send message to only that particular room
       socket.in(id_fin).emit('receive_message',message)
-  })
   });
-  
+  //  emitir y escuchae EN LINEA
+  socket.on('enLinea', message => {
+      //onsole.log(message);
+      idDest=message.idDest;
+      emite=message.emite
+      //Send message to only that particular room
+      socket.in(message.idDest).emit('resp_linea',{'estado':emite});
+  });
+
+  socket.on('enLinearesp', message => {
+    //onsole.log(message);
+    idDest=message.idDest;
+    emite=message.emite
+    //Send message to only that particular room
+    socket.in(message.idDest).emit('escuchaResp',{'estado':emite});
+});
+  });
 });
 
 //###   VARIAVLES RUTES ###
