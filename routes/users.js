@@ -164,7 +164,7 @@ router.post("/login", async(req, res) => {
         }
     if(existe==false){
            USERS.updateOne({_id:results._id},
-        {$push: {"tokensFBS":{$each:[{"tokenFB":params.tokenFB}]}}}, (err, docs) => {
+        {$push: {"tokensFBS":{$each:[{" tokenFB":params.tokenFB}]}}}, (err, docs) => {
              if (err) {
                 console.log("Existen problemas al ingresar tokenFB");
                 return;
@@ -278,7 +278,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             return;
         }
     }
-    var allowkeylist = ["nombre","apellidos","password","tokenFB","email","fecha_nac"];
+    var allowkeylist = ["zonaHoraria","nombre","apellidos","password","tokenFB","email","fecha_nac"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -290,6 +290,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     USERS.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
+           console.log(err)
             return;
         } 
         res.status(200).json(docs);
@@ -306,7 +307,7 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var user= USERS.find({_id:params.id});
+    var user= USERS.findOne({_id:params.id});
     user.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});

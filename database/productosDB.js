@@ -44,6 +44,25 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         type: String,
         required: [true, "La categoria del producto es nesesaria "]
     },
+    comentarios:[{
+        nombre:
+        {
+            type:String,
+            required:[true, "nombre requerdio"]
+        },
+        url: {
+            type:String,
+            required:[true, "url requerdio"]
+        },
+        comentario:{
+            type:String,
+            required:[true, "coment requerdio"]
+        },
+        fecha: {
+            type: String,
+            default:''
+        }
+    },]
 });
 var PRODUC = mongoose.model("productos", PRODUC_SCHEMA);
 module.exports = PRODUC;

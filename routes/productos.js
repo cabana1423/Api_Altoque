@@ -405,4 +405,24 @@ router.get("/likes",/*midleware,*/ (req, res) => {
      });
     return;
 });
+
+// ANIADIR COMENTARIOS
+
+router.post("/coment", /*midleware,*/ async(req, res) => {
+    var obj={};
+    var params=req.body;
+    var coment={'nombre':params.nombre,'url':params.url,
+    'comentario':params.comentario,'fecha':params.fecha};
+    console.log(coment);
+    PRODUC.updateOne({"_id":req.query.id}, 
+        {$push: {"comentarios":{$each:[coment]}}}, async(err, docs) => {
+            if (err) {
+                res.status(500).json({msn: "Existen problemas en la base de datos"});
+                 return;
+             }
+             res.status(200).json(docs);
+         });
+        return;
+
+});
 module.exports = router;

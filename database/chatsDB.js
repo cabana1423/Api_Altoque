@@ -15,25 +15,42 @@ var CHATSCHEMA = new mongoose.Schema({
             type: String,
         },
         time: {
-            type: Date,
-            default:Date.now,
+            type: String,
+            default:'',
         }
     },
-    ultimaConeccion:{
-        type:Array,
-        id_u:
-        {
-            type:String,
-            required:[true, "el id_u es requerida"]
+    ZonaTime:{
+        user1:{
+                id_u:
+            {
+                type:String,
+                required:[true, "el id_u es requerida"]
+            },
+            zonaHoraria: {
+                type: String,
+            },
+            hora: {
+                type: String,
+            },
         },
-        hora: {
-            type: String,
-        },
+        user2:{
+                id_u:
+            {
+                type:String,
+                required:[true, "el id_u es requerida"]
+            },
+            zonaHoraria: {
+                type: String,
+            },
+            hora: {
+                type: String,
+            },
+        }
     },
     fecha_reg: {
         type: Date,
         default: new Date()
-    }
+    },
 });
 var CHAT = mongoose.model("chats", CHATSCHEMA);
 module.exports = CHAT;

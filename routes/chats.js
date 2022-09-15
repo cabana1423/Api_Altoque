@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 var CHAT = require("../database/chatsDB");
+var USER = require("../database/usersDB");
 var LISTCHAT = require("../database/lista_chats");
 var sha1 = require("sha1");
 //var midleware=require("./midleware");
@@ -23,14 +24,15 @@ router.post("/", /*midleware,*/ async(req, res) => {
     }
 
     //por si no existiera primer id sala
-    var aux=await CHAT.findOne({"id_sala":opc2})
+    var aux=await CHAT.findOne({"id_sala":opc2});
     if(aux!=null){
         addMsg(params.id,opc2, params.mensaje,params.time,req, res);
         return;
     }
     obj["id_sala"]=opc1;
     obj["messages"]={"id_u":params.id,"mensaje":params.mensaje,"time":params.time};
-    obj['ultimaConeccion']=[{"id_u":params.id,"hora":'',},{"id_u":req.query.id_2,"hora":'',}];
+    obj['ZonaTime']={'user1':{"id_u":params.id,"hora":'','zonaHoraria':params.zonahUser1},
+   'user2': {"id_u":req.query.id_2,"hora":'','zonaHoraria':params.zonaHuser2}};
     var chatDB = new CHAT(obj);
     chatDB.save((err, docs) => {
         if (err) {
@@ -38,6 +40,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
             return;
         }
         res.json(docs);
+        console.log(docs);
         ListasChat(params.id,req.query.id_2,params.nombre,params.url,params.nombre2,params.url2,opc1,params.id_prop,req,res);
         return;
     });
@@ -227,6 +230,7 @@ router.get("/salaschat", /*midleware,*/ async(req, res) => {
         var mensaje=chats.messages[chats.messages.length-1].mensaje;
         var time=chats.messages[chats.messages.length-1].time;
         obj=listaSalas.salas[i];
+        obj['id_u']=chats.messages[chats.messages.length-1].id_u;
         obj['mensaje']=mensaje;
         obj['time']=time;
         listaMasDatos.push(obj);
@@ -236,15 +240,24 @@ router.get("/salaschat", /*midleware,*/ async(req, res) => {
     return res.status(500).json({msn: "No hay datos que mostrar"});
     //console.log(listaMasDatos);
 });
+
+
 router.put("/updateUltm", /*midleware,*/ async(req, res) => {
-    params=req.query;
+    var params=req.query;
     if(params.id_u==null){
         return res.status(500).json({msn: "id necesario"});
     }
+    var chat= await CHAT.findOne({"id_sala":params.id_s});
     console.log(params)
+    //  console.log(params.query.id_u)
+    var obj;
+    if(chat.ZonaTime.user1.id_u==params.id_u){
+        obj={'ZonaTime.user1.hora':req.body.ultm};
+    }else{
+        obj={'ZonaTime.user2.hora':req.body.ultm};;
+    }
     CHAT.update({"id_sala":params.id_s}, 
-    {$set: {"ultimaConeccion.$[elem]":{'id_u': params.id_u,"hora":req.body.ultm}}},
-    { multi: true,arrayFilters: [{'elem.id_u': params.id_u}]}, (err, docs) => {
+    {$set: obj}, (err, docs) => {
         if (err) {
             console.log("Existen problemas al ingresar tokenFB");
              return;

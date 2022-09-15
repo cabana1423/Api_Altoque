@@ -64,10 +64,10 @@ var USERSCHEMA = new mongoose.Schema({
         default:'normal'
         //required: [true, "Falta la fecha de nacimiento"]
     },
-    // zonaHoraria: {
-    //     type: Number,
-    //     //required: [true, "Apellidos son necesarios"]
-    // },
+    zonaHoraria: {
+        type: String,
+        default:''
+    },
     estIcons:{
         mensajeria:
         {
