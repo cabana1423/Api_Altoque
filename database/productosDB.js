@@ -10,7 +10,6 @@ var PRODUC_SCHEMA = new mongoose.Schema({
     },
     descripcion: {
         type: String,
-        required: [true, "La descripcion del menu es nesesaria es necesario"]
     },
     img_produc:{
         type:Array,

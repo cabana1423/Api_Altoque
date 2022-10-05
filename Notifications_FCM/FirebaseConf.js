@@ -10,9 +10,14 @@ firebase.initializeApp({
 });
 
 router.post("/", /*midleware,*/async(req, res) =>  {
+    //console.log(req.body);
 var tokens=await USERS.findOne({_id:req.body.id_2});
+//console.log(tokens);
 var listTokens=tokens.tokensFBS;
-//console.log(tokens)
+if(tokens==null){
+    res.status(500).json({msn: "Existen problemas en la base de datos"});
+     return;
+}
 
 //const firebaseToken=req.body.token;
 
@@ -29,7 +34,14 @@ const payload={
 }
 const options={priority:'high',timeTolive:60*60*24,};
 for(var i=0;i<listTokens.length;i++){
-    firebase.messaging().sendToDevice(listTokens[i].tokenFB,payload,options);
+    // console.log('esto esssss $i');
+    // console.log(listTokens[i].tokenFB);
+    try {
+        firebase.messaging().sendToDevice(listTokens[i].tokenFB,payload,options);
+    } catch (error) {
+        console.log(e);
+        return;
+    }
 }
 
 if(req.body.page=="mensajeria"){

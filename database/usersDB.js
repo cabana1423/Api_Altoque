@@ -51,8 +51,7 @@ var USERSCHEMA = new mongoose.Schema({
         {
             type: String,
             required: [true, "El tokenFB es necesario"]
-        },
-        default:[]
+        }
     },
     estado: {
         type: String,

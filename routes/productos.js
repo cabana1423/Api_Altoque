@@ -166,7 +166,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
 });     
 
 
-/*        GET prod      */
+/*        GET prod general      */
 router.get("/",/*midleware,*/ (req, res) => {
     var filter={};
     var params= req.query;
@@ -188,7 +188,6 @@ router.get("/",/*midleware,*/ (req, res) => {
         order[data[0]] = number;
     }
     //console.log(filter);
-    //console.log("es estes"+select);
     var producDB=PRODUC.find(filter).
     select(select).
     sort(order);
@@ -292,14 +291,16 @@ router.get("/idnot",/*midleware,*/ async(req, res) => {
 
 //      POST    LIKES producto
 router.post("/likes", /*midleware,*/ async(req, res) => {
+    console.log(req.body);
     var obj={};
     var aux=await LIKE.findOne({"id_user":req.query.id_u})
     if(aux!=null){
-        addLikes(req.query.id_u,req.body.id_producto,res,req);
+        addLikes(req.query.id_u,req.body.id_producto,req.body.categoria,res,req);
         return;
     }
     obj["id_user"]=req.query.id_u
     obj["listaLikes"]={"id_producto":req.body.id_producto};
+    obj["interacciones"]=[req.body.categoria];
     var likeDb = new LIKE(obj);
     likeDb.save((err, docs) => {
         if (err) {
@@ -312,17 +313,10 @@ router.post("/likes", /*midleware,*/ async(req, res) => {
     });
 
 });
-async function addLikes(id_user,id_producto,res,req) {
-    // var lista =  await LIKE.findOne({"listaLikes.id_producto":id_producto});
-    // id_producto
-    // if(lista!= null){
-    //     res.status(500).json({msn: "este producto ya esta agregado"});
-    //     console.log(' este producto existe');
-    //     return ;
-    // }
+async function addLikes(id_user,id_producto,categoria,res,req) {
+
     //AGREGANDO SOLO UN ELEMENTO    
-    LIKE.updateOne({"id_user":id_user}, 
-        {$push: {"listaLikes":{$each:[{"id_producto":id_producto}]}}}, async(err, docs) => {
+    LIKE.updateOne({"id_user":id_user}, {$addToSet: {'listaLikes': {"id_producto":id_producto},'interacciones':categoria}}, async(err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
                  return;
@@ -331,7 +325,7 @@ async function addLikes(id_user,id_producto,res,req) {
              var listas =  await LIKE.findOne({'id_user':id_user});
              res.status(200).json({msn:docs,lista:listas.listaLikes});
          });
-        return;
+    return;
 }
 async function sumLikes(id_producto,res,req) {
     PRODUC.updateOne({_id:id_producto}, 
@@ -425,4 +419,46 @@ router.post("/coment", /*midleware,*/ async(req, res) => {
         return;
 
 });
+
+     //GET PROP SEGUN FILTROS
+router.get("/interac", /*midleware,*/ async(req, res) => {
+    var params=req.query;
+    //console.log(params);
+    var limit=0;
+    var listaInteraccion=params.categorias.split(",");
+    if (params.limite=='limitado') {
+        limit=50;
+    }
+    //console.log(listaInteraccion);
+    filter={'categoria':{$in:listaInteraccion}};
+    var producDB=PRODUC.find(filter).
+    sort({'fecha_reg':-1}).limit(limit);
+    producDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        if (params.limite=='limitado') {
+            mostrarPopular(docs,res,req);
+        }else{
+            res.status(200).json(docs);
+             return;
+        }
+    });
+
+});
+
+async function mostrarPopular(docs1,res,req) {
+    var producDB=PRODUC.find().
+    sort({'numLikes':-1}).limit(30);
+    producDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+        res.status(200).json({populares:docs,interes:docs1});
+        return;
+    });
+}
+
 module.exports = router;

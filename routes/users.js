@@ -146,45 +146,26 @@ router.post("/login", async(req, res) => {
       return;
   }
   var results = await USERS.findOne({email: params.email, password: sha1(params.password)});
+  //console.log(results);
   if (results != null) {
+
       if (results.estado!='verificada') {
         res.status(300).json({msn: "la cuenta no esta verificada",res:results});
         return;
       }
-      /*var token =JWT.sign({
-          exp:Math.floor(Date.now()/1000)+(60*60*60),
-          data:results[0].id
-      }, 'PedroCabanaBautistaPotosiBolivia2020');*/
-      var existe= false;
-        for(var i=0;i<results.tokensFBS.length;i++){
-            if(results.tokensFBS[i].tokenFB==params.tokenFB){
-                existe=true;
-                break;
-            }
-        }
-    if(existe==false){
-           USERS.updateOne({_id:results._id},
-        {$push: {"tokensFBS":{$each:[{" tokenFB":params.tokenFB}]}}}, (err, docs) => {
-             if (err) {
-                console.log("Existen problemas al ingresar tokenFB");
-                return;
-            }
-        });
-    }
-    // USERS.updateOne({_id:results._id}, {$set: {"zonaHoraria":params.zt}}, (err, docs) => {
-    //     if (err) {
-    //         console.log("Existen problemas al ingresar ZonaHoraria");
-    //          return;
-    //      } 
-    //  })
+
+      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]}}, (err, docs) => {
+                 if (err) {
+                    console.log("Existen problemas al ingresar tokenFB");
+                    return;
+                }
+            });
         var likes=await LIKE.findOne({"id_user":results._id});
-        var listaLikes;
-        if(likes!=null){
-            listaLikes=likes.listaLikes;
-        }else{
-            listaLikes=[];
+        console.log(likes);
+        if(likes==null){
+            likes=[];
         }
-        res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:listaLikes/*,token:token,id:results[0].id*/});
+        res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:likes/*,token:token,id:results[0].id*/});
         return;
   }
   res.status(300).json({msn: "noExiste"});
@@ -319,7 +300,7 @@ router.get("/id",/*midleware,*/ async(req, res) => {
 });
 /**         LOGIN SOCIAL */
 router.get("/social_login",/*midleware,*/ async(req, res) => {
-
+    console.log(req.query);
     var params= req.query;
     if (params.email == null) {
         res.status(300).json({msn: "El parámetro email es necesario"});
@@ -332,36 +313,45 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
     }
     else{
 
-        var existe= false;
-        for(var i=0;i<user.tokensFBS.length;i++){
-            if(user.tokensFBS[i].tokenFB==params.tkFB){
-                existe=true;
-                break;
-            }
-        }
-        if(existe==false){
-                   USERS.update({_id:user._id},
-            {$push: {"tokensFBS":{$each:[{"tokenFB":params.tkFB}]}}},(err, docs) => {
+        if (params.tkFB!='') {
+            USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tkFB}]}}, (err, docs) => {
                 if (err) {
-                    console.log("Existen problemas al ingresar tokenFB");
-                    return;
-                }
-            }); 
+                   console.log("Existen problemas al ingresar tokenFB");
+                   return;
+               }
+           });
         }
-        // USERS.updateOne({_id:  user._id}, {$set: {"zonaHoraria":params.zt}}, (err, docs) => {
-        //     if (err) {
-        //         console.log("Existen problemas al ingresar tokenFB");
-        //          return;
-        //      } 
-        //  });
         var likes=await LIKE.findOne({"id_user":user._id});
-        var listaLikes;
-        if(likes!=null){
-            listaLikes=likes.listaLikes;
-        }else{
-            listaLikes=[];
+        if(likes==null){
+            likes=[];
         }
-        res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:listaLikes});
+        res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:likes});
+        return;
+    }
+});
+
+//      DATOS   GET COMPROBAR STORAGE
+router.post("/compStorage",/*midleware,*/ async(req, res) => {
+
+    var params= req.body;
+    var user= await USERS.findOne({_id:params.id,email:params.email});
+    if(user==null){
+        res.status(300).json({msn: "no_existe"});
+        return;
+    }
+    else{
+
+        USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]}}, (err, docs) => {
+            if (err) {
+               console.log("Existen problemas al ingresar tokenFB");
+               return;
+           }
+       });
+        var likes=await LIKE.findOne({"id_user":user._id});
+        if(likes==null){
+            likes=[];
+        }
+        res.status(200).json({res:user,listaLike:likes});
         return;
     }
 });
@@ -403,6 +393,19 @@ router.post("/reverifi", async(req, res, next) => {
                  return;
              } 
              res.status(200).json({msn:'codigo actualizado'});
+         });
+
+});
+
+router.post("/delToken", async(req, res, next) => {
+    var params = req.body;
+    console.log(params);
+    USERS.updateOne({_id:  params.id}, {$pull: {'tokensFBS':{'tokenFB':params.tokenFB}}}, (err, docs) => {
+            if (err) {
+                res.status(500).json({msn: "error en la base de datos"});
+                 return;
+             } 
+             res.status(200).json({msn:'codigo actualizado',docs});
          });
 
 });

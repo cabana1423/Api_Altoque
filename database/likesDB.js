@@ -6,16 +6,9 @@ var LIKESCHEMA = new mongoose.Schema({
     },
     listaLikes:{
         type:Array,
-        id_producto:
-        {
-            type:String,
-            required:[true, "el id_p es requerida"]
-        },
-        fecha_reg: {
-            type: Date,
-            default: new Date()
-        }
     },
+    interacciones:[
+    ]
     
 });
 var LIKE = mongoose.model("likes", LIKESCHEMA);

@@ -5,6 +5,7 @@ const fileUploadService =  require('../services/upload.service');
 var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
 var PRODUC = require("../database/productosDB");
+var USERS = require("../database/usersDB");
 const bucketAws ="propiedadesfiles"
 //var midleware=require("./midleware");
 router.use(fileUpload({
@@ -81,6 +82,12 @@ router.post("/", /*midleware,*/ async(req, res) => {
             return res.status(300).json(err);
         }
         res.json(docs);
+        USERS.updateOne({_id:params.id}, {$set: {"tipo":'propietario'}}, (err, docs) => {
+        if (err) {
+            console.log("Existen problemas al ingresar ZonaHoraria");
+             return;
+         } 
+         });
         return;
     });
 
