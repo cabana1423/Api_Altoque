@@ -163,7 +163,7 @@ router.post("/login", async(req, res) => {
         var likes=await LIKE.findOne({"id_user":results._id});
         console.log(likes);
         if(likes==null){
-            likes=[];
+            likes={'listaLikes':[],'interacciones':[]};
         }
         res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:likes/*,token:token,id:results[0].id*/});
         return;
@@ -323,7 +323,7 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
         }
         var likes=await LIKE.findOne({"id_user":user._id});
         if(likes==null){
-            likes=[];
+            likes={'listaLikes':[],'interacciones':[]};
         }
         res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:likes});
         return;
@@ -349,7 +349,7 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
        });
         var likes=await LIKE.findOne({"id_user":user._id});
         if(likes==null){
-            likes=[];
+            likes={'listaLikes':[],'interacciones':[]};
         }
         res.status(200).json({res:user,listaLike:likes});
         return;

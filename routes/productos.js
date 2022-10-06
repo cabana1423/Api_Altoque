@@ -426,13 +426,18 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
     //console.log(params);
     var limit=0;
     var listaInteraccion=params.categorias.split(",");
+    console.log(listaInteraccion);
     if (params.limite=='limitado') {
         limit=50;
     }
     //console.log(listaInteraccion);
-    filter={'categoria':{$in:listaInteraccion}};
+    if (listaInteraccion.length<2) {
+        var producDB=PRODUC.find({'nombre':RegExp('')}).limit(limit);
+    } else {
+        filter={'categoria':{$in:listaInteraccion}};
     var producDB=PRODUC.find(filter).
     sort({'fecha_reg':-1}).limit(limit);
+    }
     producDB.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
