@@ -35,6 +35,10 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         type: Number,
         default:0
     },
+    numVentas: {
+        type: Number,
+        default:0
+    },
     fecha_reg: {
         type: Date,
         default: new Date()

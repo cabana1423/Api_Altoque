@@ -5,9 +5,12 @@ var PROP = require("../database/propiedadDB");
 var LIKE = require("../database/likesDB");
 const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
+const verificaionFiles =  require('../services/verificar.service');
 var AWS = require('aws-sdk');
 var sha1 = require("sha1");
 const fs = require('fs');
+const { arch } = require("os");
+const { verificarFile } = require("../services/verificar.service");
 const bucketAws ="productofiles"
 //var midleware=require("./midleware");
 
@@ -48,33 +51,48 @@ router.post("/", /*midleware,*/ async(req, res) => {
         return;
     }
     var prop =  await PROP.find({_id:params.id});
-    if(req.files.media.length==undefined){
-        req.files.media=[req.files.media];
-    }
-    var tamanio=req.files.media.length;
-    if(tamanio>5){
-        return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
-    }
-    vect = new Array(); Archs=new Array();
-    var uploadRes;
-    for(var i=0;i<tamanio;i++){
-        if(req.files && req.files.media[i]){
-            const file= req.files.media[i];
-            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
-            let arch={
-                "Key":uploadRes.key
-            }
-            vect.push(uploadRes);
-            Archs.push(arch);
+
+    if(req.files && req.files.media)
+    {    if(req.files.media.length==undefined){
+            req.files.media=[req.files.media];
         }
-    }
+        var tamanio=req.files.media.length;
+        if(tamanio>5){
+            return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
+        }
+        vect = new Array(); images=new Array();
+        var uploadRes;
+        var verificacion;
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                verificacion=await verificaionFiles.verificarFile(file);
+                if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta publicacion va en contra nuestras politicas'});
+                }
+            }
+        }
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+                let arch={
+                    "Key":uploadRes.key
+                }
+                vect.push(uploadRes);
+                images.push(arch);
+            }
+         }
+         }else{
+            return res.status(300).json({msn:'error al subir los archivos'});
+        }
     obj["img_produc"]=vect;
     obj["id_prop"]=params.id;
     obj["id_user"]=prop[0].id_user;
     var producDB = new PRODUC(obj);
     producDB.save((err, docs) => {
         if (err) {
-            borrar(Archs);
+            borrar(images);
             res.status(300).json(err);
             console.log(err);
             return;
@@ -92,28 +110,42 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El id producto es necesario"});
              return;
     }
-    //imagen up
-    var produc =  await PRODUC.find({_id:params.id});
-    var img=produc[0].img_produc;
-    if(req.files.media.length==undefined){
-        req.files.media=[req.files.media];
-    }
-    var tamanio=req.files.media.length;
-    vect = new Array();
-    var uploadRes;
-    for(var i=0;i<tamanio;i++){
-        if(req.files && req.files.media[i]){
-            const file= req.files.media[i];
-            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);        
-            let arch={
-                "Key":uploadRes.key
-            }
-            vect.push(arch);
-            img.push(uploadRes);
+    //      VERIFICACION Y SUBIDA DE IMAGENES
+    var img=new Array();
+    if(req.files && req.files.media){
+        
+        if (req.files.media.length==undefined) {
+            req.files.media=[req.files.media];
         }
+        var tamanio=req.files.media.length;
+        vect = new Array();
+        var uploadRes;
+        var verificacion;
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                verificacion=await verificaionFiles.verificarFile(file);
+                if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta publicacion va en contra nuestras politicas'});
+                }
+            }
+        }
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+                let arch={
+                    "Key":uploadRes.key
+                }
+                vect.push(arch);
+                img.push(uploadRes);
+            }
+        }
+    }else{
+        return res.status(300).json({msn:'error al subir los archivos'});
     }
-    PRODUC.updateOne({_id:params.id}, 
-    {$set: {"img_produc":img}}, (err, docs) => {
+    PRODUC.updateOne({_id:params.id},
+        {$push: {"img_produc":{$each:img}}}, (err, docs) => {
         if (err) {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
             borrar(vect);
@@ -308,7 +340,8 @@ router.post("/likes", /*midleware,*/ async(req, res) => {
             return;
         }
         sumLikes(req.body.id_producto,res,req);
-        res.json({lista:docs.listaLikes});
+        res.json({lista:docs.listaLikes,interacciones:docs.interacciones});
+        
         return ;
     });
 
@@ -323,7 +356,9 @@ async function addLikes(id_user,id_producto,categoria,res,req) {
              }
              sumLikes(req.body.id_producto,res,req);
              var listas =  await LIKE.findOne({'id_user':id_user});
-             res.status(200).json({msn:docs,lista:listas.listaLikes});
+             res.status(200).json({msn:docs,lista:listas.listaLikes,interacciones:listas.interacciones});
+             console.log(listas);
+             return;
          });
     return;
 }
@@ -403,12 +438,11 @@ router.get("/likes",/*midleware,*/ (req, res) => {
 // ANIADIR COMENTARIOS
 
 router.post("/coment", /*midleware,*/ async(req, res) => {
-    var obj={};
     var params=req.body;
     var coment={'nombre':params.nombre,'url':params.url,
     'comentario':params.comentario,'fecha':params.fecha};
     console.log(coment);
-    PRODUC.updateOne({"_id":req.query.id}, 
+    PRODUC.updateOne({"_id":req.query.id},
         {$push: {"comentarios":{$each:[coment]}}}, async(err, docs) => {
             if (err) {
                 res.status(500).json({msn: "Existen problemas en la base de datos"});
@@ -426,7 +460,7 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
     //console.log(params);
     var limit=0;
     var listaInteraccion=params.categorias.split(",");
-    console.log(listaInteraccion);
+    //console.log(listaInteraccion);
     if (params.limite=='limitado') {
         limit=50;
     }
@@ -434,7 +468,7 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
     if (listaInteraccion.length<2) {
         var producDB=PRODUC.find({'nombre':RegExp('')}).limit(limit);
     } else {
-        filter={'categoria':{$in:listaInteraccion}};
+        var filter={'categoria':{$in:listaInteraccion}};
     var producDB=PRODUC.find(filter).
     sort({'fecha_reg':-1}).limit(limit);
     }
@@ -465,5 +499,31 @@ async function mostrarPopular(docs1,res,req) {
         return;
     });
 }
+
+router.get("/mostProd", /*midleware,*/ async(req, res) => {
+    var params=req.query;
+    var masProductosTienda;
+    var mismaCatego;
+    console.log(params);
+    //misma tienda
+    if(params.id!=null){
+         masProductosTienda =  await PRODUC.find({'id_prop':params.id});
+        if (masProductosTienda==null) {
+            masProductosTienda=[];
+         }
+    }
+    //misma categoria
+    if(params.cat!=null){
+        var mismaCatego =  await PRODUC.find({'categoria':params.cat}, null, {limit: 20});
+        if (mismaCatego==null) {
+            mismaCatego=[];
+         }
+    }
+    res.status(200).json({masProductos:masProductosTienda
+                        ,mismaCatego:mismaCatego});
+    return;
+
+});
+
 
 module.exports = router;

@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
+const verificaionFiles =  require('../services/verificar.service');
 var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
 var PRODUC = require("../database/productosDB");
@@ -47,32 +48,45 @@ router.post("/", /*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
     }
-    //imagen up
-    console.log(req.files.media.length);
-    if(req.files.media.length==undefined){
-        req.files.media=[req.files.media];
-    }
-    var tamanio=req.files.media.length;
-    if(tamanio>2){
-        return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
-    }
-    vect = new Array(); Archs=new Array();
-    var uploadRes;
-    for(var i=0;i<tamanio;i++){
-        if(req.files && req.files.media[i]){
-            const file= req.files.media[i];
-            uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
-            let arch={
-                "Key":uploadRes.key
-            }
-            vect.push(uploadRes);
-            Archs.push(arch);
+    //imagen up :)
+
+    if(req.files && req.files.media){
+        if(req.files.media.length==undefined){
+            req.files.media=[req.files.media];
         }
-    }
+        var tamanio=req.files.media.length;
+        if(tamanio>2){
+            return res.status(300).send({msn : "el numero de archivos exede a lo permitido"});
+        }
+        vect = new Array(); Archs=new Array();
+        var uploadRes;
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                var verificacion=await verificaionFiles.verificarFile(file);
+                if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta usando imagenes que van en contra de nuestras politicas'});
+                }
+            }
+        }
+        for(var i=0;i<tamanio;i++){
+            if(req.files && req.files.media[i]){
+                const file= req.files.media[i];
+                uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
+                let arch={
+                    "Key":uploadRes.key
+                }
+                vect.push(uploadRes);
+                Archs.push(arch);
+            }
+        }
+    }else{
+        return res.status(300).json({msn:'error al subir los archivos'});
+    }   
+
     //prop up
     obj["img_prop"]=vect;
     obj["location"]={coordinates:[req.body.long,req.body.lat]};
-    //obj["ubicacion"]={"lat":pr.lat,"long":pr.long,"calle":pr.calle};
     obj["id_user"]=params.id;
     var propDB = new PROP(obj);
     //console.log(obj);
@@ -106,6 +120,10 @@ router.post("/addimg", /*midleware,*/ async(req, res) => {
     var uploadRes;
     if(req.files && req.files.media){
         const file= req.files.media;
+         var verificacion=await verificaionFiles.verificarFile(file);
+                if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta usando imagenes que van en contra de nuestras politicas'});
+                }
         uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
         img.push(uploadRes);   
     }
@@ -172,6 +190,10 @@ router.put("/file", async(req, res, next) => {
     var uploadRes;
     if(req.files && req.files.media){
         const file= req.files.media;
+        var verificacion=await verificaionFiles.verificarFile(file);
+             if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta usando imagenes que van en contra de nuestras politicas'});
+            }
         uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws); 
     }
     const keyF=uploadRes.key;
@@ -216,7 +238,11 @@ router.get("/",/*midleware,*/ (req, res) => {
     if(params.id_vig!=null){
         var expresion =new RegExp(params.id_vig);
         filter["id_user"]=expresion;
-        filter["estado"]="vigente";
+        filter["estado"]={$in:['vigente','suspendido']};
+    }
+    if(params.estado!=null){
+        var expresion =new RegExp(params.estado);
+        filter["estado"]=expresion;
     }
     if(params.filters!=null){
         select=params.filters.replace(/,/g, " ");
@@ -292,7 +318,7 @@ async function delete_productos(id_prop){
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["nombre","nit","propietario","telefono","estado"];
+    var allowkeylist = ["nombre","nit","propietario","telefono","estado",'entregas'];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {

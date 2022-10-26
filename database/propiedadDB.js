@@ -52,6 +52,10 @@ var PROP_SCHEMA = new mongoose.Schema({
         estado: {
             type: String,
             default:"vigente"
+        },
+        entregas: {
+            type: String,
+            default:"deshabilitado"
         }
 });
 PROP_SCHEMA.index({ location: "2dsphere" });

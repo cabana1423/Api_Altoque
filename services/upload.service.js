@@ -24,6 +24,7 @@ async function uploadFileToAws(file, bucketAws){
         const res = await new Promise((resolve, reject) => {
             s3.upload(params, (err, data) => err == null ? resolve(data) : reject(err));
           });
+          console.log('imagen subida');
         return {Url: res.Location, key: res.key };
 }
 

@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const fileUpload = require('express-fileupload');
 const fileUploadService =  require('../services/upload.service');
+const verificaionFiles =  require('../services/verificar.service');
 const mailer =require('../send_email/signup_email');
 var AWS = require('aws-sdk');
 var sha1 = require("sha1");
@@ -71,13 +72,16 @@ router.post("/", async(req, res,next) => {
     var urlF;
     if(req.files && req.files.media){
         const file= req.files.media;
+        var verificacion=await verificaionFiles.verificarFile(file);
+        if (verificacion=='baneado') {
+                return res.status(300).json({msn:'esta imagen va en contra nuestras politicas'});
+         }
         uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws);
          keyF=uploadRes.key;
          urlF=uploadRes.Url;
-        //console.log(uploadRes);    
+        //console.log(uploadRes);
     }
     //console.log(userInfo.url_img)
-    
     if(params.url_img==null||params.url_img==undefined){
         obj["img_user"]=[{"Url":urlF,"key":keyF}];
     }else{
@@ -118,6 +122,10 @@ router.put("/file", async(req, res, next) => {
     var uploadRes;
     if(req.files && req.files.media){
         const file= req.files.media;
+        var verificacion=await verificaionFiles.verificarFile(file);
+        if (verificacion=='baneado') {
+                    return res.status(300).json({msn:'esta publicacion va en contra nuestras politicas'});
+                }
         uploadRes = await fileUploadService.uploadFileToAws(file, bucketAws); 
     }
     const keyF=uploadRes.key;

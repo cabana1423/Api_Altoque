@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var CONT = require("../database/cuentasDB");
 var PROP = require("../database/propiedadDB");
+var PRODUC = require("../database/productosDB");
 var NOTI = require("../database/notificationsDB");
 var sha1 = require("sha1");
 const fs = require('fs');
@@ -10,6 +11,7 @@ const fs = require('fs');
 //POST     cuentas
 router.post("/", /*midleware,*/ async(req, res) => {
     var obj={};
+    let vecAddVentas= new Array();
     params=req.body;
     if (req.query.id_u == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
@@ -21,6 +23,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     let vec= new Array();
     for(var i=0;i<params.nombre.length;i++)
     {
+        vecAddVentas.push({'id':params.id[i],"numVentas":1});
         let productos = {
             "id_p": params.id[i],
             "nombre_p": params.nombre[i],
@@ -36,9 +39,29 @@ router.post("/", /*midleware,*/ async(req, res) => {
     var contDB = new CONT(obj);
     contDB.save((err, docs) => {
         if (err) {
-            res.status(300).json(err);
+            res.status(300).json({msn: "error al registrar cuentas"});
             return;
         }
+        //actualizar  muchos documentos
+        const bulkOps = vecAddVentas.map(obj => {
+            return {
+              updateOne: {
+                filter: {
+                  _id: obj.id
+                },
+                update: {$inc: {
+                   'numVentas': obj['numVentas']
+                }}
+              }
+            }
+          })
+
+          PRODUC.bulkWrite(bulkOps).then((res,err) => {
+            if (err) {
+                res.status(300).json({msn: "error al aumentar ventas"});
+            return;
+            }
+          })
         res.status(200).json({id_cont:docs._id});
         return;
     });
@@ -79,14 +102,6 @@ router.put("/",/*midleware,*/ async(req, res) => {
                             return;
                         }
             });
-        // ({_id:params.idNot},         
-        //     {$set: {"listaNoti.$[elem]":{"listaNoti.estado":bodydata.estado}}},
-        //     { arrayFilters: [{'elem.id_cont': params.id}]}, (err, docs) => {
-        //         if (err) {
-        //             console.log('error en la bd notificaciones')
-        //             return;
-        //         }
-        //  });
         res.status(200).json(docs);
         return;
     });
