@@ -56,7 +56,11 @@ var PROP_SCHEMA = new mongoose.Schema({
         entregas: {
             type: String,
             default:"deshabilitado"
-        }
+        },
+        denuncias: {
+            type: Number,
+            default:0
+        },
 });
 PROP_SCHEMA.index({ location: "2dsphere" });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);

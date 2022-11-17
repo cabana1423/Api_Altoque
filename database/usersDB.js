@@ -78,6 +78,18 @@ var USERSCHEMA = new mongoose.Schema({
             default: ""
         }
     },
+    verificacion: {
+        type: String,
+        default:''
+    },
+    telefono: {
+        type: String,
+        default:''
+    },
+    refreshToken: {
+        type: String,
+        default:''
+    },
     /*limite:{
         type:Number,
         default:0 

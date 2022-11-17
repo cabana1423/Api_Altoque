@@ -7,6 +7,7 @@ var app = express();
 //##      VARIABLES  socket
 var http=require("http");
 const cors =require("cors");
+
 //const portSocket=process.env.PORT||5000;
 
 var server =http.createServer(app);
@@ -42,6 +43,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors({
+  origin: '*',
+  methods: ['GET','POST','DELETE','UPDATE','PUT','PATCH']
+}));
+
 
 /**   LOGICA SOCKET.IO */
 

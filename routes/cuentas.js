@@ -160,13 +160,13 @@ router.delete("/",/*midleware,*/ async(req, res) => {
 router.get("/id",/*midleware,*/ async(req, res) => {
 
     var params= req.query;
-    console.log(params);
+    //console.log(params);
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
     var propiedad=await PROP.findOne({_id:params.idT});
-    console.log(propiedad);
+    //console.log(propiedad);
     
     var cuent= CONT.findOne({_id:params.id});
     cuent.exec((err, docs)=>{

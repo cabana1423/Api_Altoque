@@ -12,10 +12,10 @@ const fs = require('fs');
 const { arch } = require("os");
 const { verificarFile } = require("../services/verificar.service");
 const bucketAws ="productofiles"
-//var midleware=require("./midleware");
+var midleware=require("./jsonwebtoken");
 
 router.use(fileUpload({
-    limits: { fileSize: 8 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 },
 }
 ));
 
@@ -199,17 +199,21 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
 
 
 /*        GET prod general      */
-router.get("/",/*midleware,*/ (req, res) => {
+router.get("/",midleware, (req, res) => {
     var filter={};
+    filter["estado"]='vigente';
     var params= req.query;
     var select="";
     var order = {};
     if(params.nombre!=null){
         var expresion =new RegExp(params.nombre);
         filter["nombre"]=expresion;
+
     }if(params.id_p!=null){
         var expresion =new RegExp(params.id_p);
+        filter={};
         filter["id_prop"]=expresion;
+
     }
     if(params.filters!=null){
         select=params.filters.replace(/,/g, " ");
@@ -258,9 +262,9 @@ router.get("/",/*midleware,*/ (req, res) => {
          }
          res.status(200).json(docs);
      });
-});;
+});
 
-    /*        PUT prop      */
+    /*        PUT producto     */
  router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
@@ -268,7 +272,7 @@ router.get("/",/*midleware,*/ (req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["nombre","precio","descripcion"];
+    var allowkeylist = ["nombre","precio","descripcion","estado"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -292,7 +296,7 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var produc= PRODUC.find({_id:params.id});
+    var produc= PRODUC.findOne({_id:params.id});
     produc.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
@@ -308,7 +312,7 @@ router.get("/idnot",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var produc= PRODUC.find({_id:{$ne:params.id_not},"id_prop":params.id_p});
+    var produc= PRODUC.find({_id:{$ne:params.id_not},"id_prop":params.id_p,});
     produc.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
@@ -440,7 +444,7 @@ router.get("/likes",/*midleware,*/ (req, res) => {
 router.post("/coment", /*midleware,*/ async(req, res) => {
     var params=req.body;
     var coment={'nombre':params.nombre,'url':params.url,
-    'comentario':params.comentario,'fecha':params.fecha};
+    'comentario':params.comentario,'fecha':params.fecha,'id_u':params.id_u};
     console.log(coment);
     PRODUC.updateOne({"_id":req.query.id},
         {$push: {"comentarios":{$each:[coment]}}}, async(err, docs) => {
@@ -466,9 +470,9 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
     }
     //console.log(listaInteraccion);
     if (listaInteraccion.length<2) {
-        var producDB=PRODUC.find({'nombre':RegExp('')}).limit(limit);
+        var producDB=PRODUC.find({'nombre':RegExp(''),'estado':'vigente'}).limit(limit);
     } else {
-        var filter={'categoria':{$in:listaInteraccion}};
+        var filter={'categoria':{$in:listaInteraccion},'estado':'vigente'};
     var producDB=PRODUC.find(filter).
     sort({'fecha_reg':-1}).limit(limit);
     }
@@ -488,8 +492,9 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
 });
 
 async function mostrarPopular(docs1,res,req) {
-    var producDB=PRODUC.find().
+    var producDB=PRODUC.find({'estado':'vigente'}).
     sort({'numLikes':-1}).limit(30);
+
     producDB.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
@@ -507,21 +512,58 @@ router.get("/mostProd", /*midleware,*/ async(req, res) => {
     console.log(params);
     //misma tienda
     if(params.id!=null){
-         masProductosTienda =  await PRODUC.find({'id_prop':params.id});
+         masProductosTienda =  await PRODUC.find({'id_prop':params.id,'estado':'vigente'});
         if (masProductosTienda==null) {
             masProductosTienda=[];
          }
     }
     //misma categoria
     if(params.cat!=null){
-        var mismaCatego =  await PRODUC.find({'categoria':params.cat}, null, {limit: 20});
+        var mismaCatego =  await PRODUC.find({'categoria':params.cat,'estado':'vigente'}, null, {limit: 20});
         if (mismaCatego==null) {
+            // console.log(mismaCatego)
             mismaCatego=[];
          }
     }
     res.status(200).json({masProductos:masProductosTienda
                         ,mismaCatego:mismaCatego});
     return;
+
+});
+//          DELETE COMENTARIOS
+router.post("/deleteComentario",/*midleware,*/ async(req, res) => {
+    var params=req.query
+    if (params.idP == null) {
+        res.status(300).json({msn: "no existe id COMENTARIO"});
+        return;
+    }
+    PRODUC.updateOne({_id:params.idP},
+    {$pull: {"comentarios":{_id:params.idC}}}, async(err, docs) => {
+        if (err) {
+            res.status(300).json({msn: "Existen problemas en la base de datos"});
+             return;
+         }
+         res.status(200).json(docs);
+         //console.log(docs);
+     });
+    return;
+});
+
+router.post("/save", /*midleware,*/ async(req, res) => {
+    var params=req.body;
+    //console.log(params);
+    var listaSave=params.save.split(",");
+    var filter={_id:{$in:listaSave}};
+    var producDB=PRODUC.find(filter).
+    sort({'numLikes':-1})
+    producDB.exec((err, docs)=>{
+        if(err){
+            res.status(500).json({msn: "Error en la coneccion del servidor"});
+            return;
+        }
+            res.status(200).json(docs);
+             return;
+    });
 
 });
 

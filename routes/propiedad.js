@@ -7,7 +7,7 @@ var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
 var PRODUC = require("../database/productosDB");
 var USERS = require("../database/usersDB");
-const bucketAws ="propiedadesfiles"
+const   bucketAws ="propiedadesfiles"
 //var midleware=require("./midleware");
 router.use(fileUpload({
     limits: { fileSize: 1 * 1024 * 1024 },
@@ -37,9 +37,33 @@ async function borrar(Archs){
             }
 }
 
+async function borrarVarios(Archs,bucket){
+    AWS.config.update({
+        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
+        secretAccessKey: "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",
+        region: "sa-east-1",
+    });
+    const s3 = new AWS.S3();
+    
+    const params = {
+            Bucket: bucket,
+            Delete: {
+                Objects:Archs
+            }
+    }
+            try {
+                await s3.deleteObjects(params).promise()
+                console.log("file deleted Successfully")
+            }
+            catch (err) {
+                console.log("ERROR in file Deleting : " + JSON.stringify(err))
+            }
+}
+
 //  POST prop
 
 router.post("/", /*midleware,*/ async(req, res) => {
+    console.log(req.body)
     var params = req.query;
     var obj={};
     obj = req.body;
@@ -266,49 +290,74 @@ router.get("/",/*midleware,*/ (req, res) => {
         return;
     });
   });
+
+
+  router.get("/prueba",/*midleware,*/ async(req, res) => {
+
+    var productos=await PRODUC.find({'id_prop':req.query.id});
+    const vec=new Array();
+    for (let j = 0; j < productos.length; j++) {
+        var img=productos[j].img_produc;
+        for(var i=0;i<img.length;i++){
+            let aux={
+                Key:img[i].key
+            }
+            vec.push(aux);
+        }
+    }
+    return res.status(200).json({msn:productos,vector:vec});
+});
+
   /*        DELETE prop      */
+
+  
 
 router.delete("/",/*midleware,*/ async(req, res) => {
     if (req.query.id == null) {
         res.status(300).json({msn: "no existe id"});
         return;
     }
+    const producImg=new Array();
+    var productos=await PRODUC.find({'id_prop':req.query.id});
+    for (let j = 0; j < productos.length; j++) {
+        var img=productos[j].img_produc;
+        for(var i=0;i<img.length;i++){
+            let aux={
+                Key:img[i].key
+            }
+            producImg.push(aux);
+        }
+    }
+    const propImg=new Array();
     var propiedad=await PROP.find({_id:req.query.id});
     var img=propiedad[0].img_prop;
-    const vec=new Array();
     for(var i=0;i<img.length;i++){
         let aux={
             Key:img[i].key
         }
-        vec.push(aux);
+        propImg.push(aux);
     }
-    PROP.remove({_id:req.query.id}, (err, docs) => {
+    PRODUC.remove({'id_prop':req.query.id }, function(err,docs) {
         if (err) {
-            res.status(500).json({msn: "Existen problemas en la base de datos"});
-             return;
+            res.status(300  ).json({msn: "Error en eliminar los productos"});
+            return;
+        }
+        if(docs.deletedCount>1){
+            borrarVarios(producImg,'productofiles');
          }
-         if(docs.deletedCount==1){
-            borrar(vec);
-         }
-         delete_productos(req.query.id)
-         res.status(200).json(docs);
-     });
+            PROP.remove({_id:req.query.id }, async function(err,docs) {
+                if (err) {
+                    res.status(300).json({msn: "Error en eliminar los propiedad"});
+                    return;
+                }
+                if(docs.deletedCount>1){
+                    borrarVarios(propImg,bucketAws);
+                 }
+                return res.status(200).json({msn:'usuario eliminado'})
+            });
+    });
 });
 
-//      BORAR PRODUCTOS SEGUN PROP//
-async function delete_productos(id_prop){
-    PRODUC.remove({"id_prop":id_prop}, (err, docs) => {
-        if (err) {
-            console.log(err);
-            // res.status(500).json({msn: "Existen problemas en la base de datos"});
-             return;
-         }
-         console.log(docs);
-         //res.status(200).json(docs);
-     });
-
-}
-    
  /*        PUT prop      */
 
  router.put("/",/*midleware,*/ async(req, res) => {
@@ -318,6 +367,10 @@ async function delete_productos(id_prop){
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
+    var user=await USERS.findOne({_id:req.query.id_u});
+        if (user.estado!='verificada') {
+           return res.status(300).json({msn: "el usuario de esta propiedad esta suspendido no puede realizar esta modificacion"});
+        }
     var allowkeylist = ["nombre","nit","propietario","telefono","estado",'entregas'];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
@@ -334,10 +387,25 @@ async function delete_productos(id_prop){
            res.status(500).json({msn: "no se pudo completar la operación"});
             return;
         } 
-        res.status(200).json(docs);
+        if (bodydata.estado!=null) {
+            actualizarDemas(params.id,bodydata.estado, res,req);
+        }else{
+            res.status(200).json(docs);
+        }
     });
 
 });
+
+async function actualizarDemas(id_prop,estado,res,req) {
+
+    PRODUC.updateMany({'id_prop':id_prop}, {$set: {'estado':estado}}, (err, docs) => {
+       if (err) {
+           res.status(300).json({msn: "Existen problemas en la base de datos"});
+            return;
+        } 
+        res.status(200).json({msn:'datos actualizados'});
+    });
+}
 
 
 /*        GET prop por id      */
@@ -371,7 +439,7 @@ router.get("/dist",/*midleware,*/(req, res) => {
         console.log(distan);
     }
     var dist=PROP.find(
-    {"nombre":RegExp(params.pal),
+    {"nombre":RegExp(params.pal),'estado':'vigente',
         location: {
          $near: {
           $maxDistance: distan,

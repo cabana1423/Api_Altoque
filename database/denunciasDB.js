@@ -1,16 +1,24 @@
 var mongoose = require("./connect");
 var DENUSCHEMA = new mongoose.Schema({
-    id_user: {
+    id_user: { 
         type: String,
-        required: [true, "El id es necesario"]
+        required: [true, "El id user es necesario"]
     },
-    id_propiedad: {
-        type: String,
-        required: [true, "id propiedad son necesarios"]
+    tipo: {
+        id:
+            {
+                type:String,
+                required:[true, "id es requerida"]
+            },
+        clase:
+            {
+                type:String,
+                required:[true, "clase es requerida"]
+            },
     },
     denuncia: {
         type: String,
-        required: [true, "El password es necesario"]
+        required: [true, "denuncia es necesaria"]
     },
     fecha_reg: {
         type: Date,

@@ -39,8 +39,12 @@ var ADMINSCHEMA = new mongoose.Schema({
     rol: {
         type: String,
         required: [true, "El rol es necesario"],
-        unique:[true, "el rol tiene que ser unico"]
     },
+    direccion: {
+        type: String,
+        required: [true, "la direccion es necesaria"],
+    },
+
 });
 var ADMIN = mongoose.model("admins", ADMINSCHEMA);
 module.exports = ADMIN;

@@ -6,17 +6,25 @@ const verificaionFiles =  require('../services/verificar.service');
 const mailer =require('../send_email/signup_email');
 var AWS = require('aws-sdk');
 var sha1 = require("sha1");
-//var JWT=require("jsonwebtoken");
+var jwt=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
 const LIKE = require('../database/likesDB');
 const bucketAws ="usuariosfiles"
+const config = require('./config.json')
+var midleware=require("./jsonwebtoken");
+const PRODUC = require('../database/productosDB');
+const PROP = require('../database/propiedadDB');
+
 
 router.use(fileUpload({
     limits: { fileSize: 5 * 1024 * 1024 },
 }
 ));
 
-async function borrar(keyF){
+async function borrar(Archs){
+    if (Archs[0]['Key']==null) {
+        return;
+    }
     AWS.config.update({
         accessKeyId: "AKIAZNICKCXYYPV6L4WA",
         secretAccessKey: "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",
@@ -25,23 +33,76 @@ async function borrar(keyF){
     const s3 = new AWS.S3();
     
     const params = {
-            Bucket: bucketAws,
-            Key: keyF //if any sub folder-> path/of/the/folder.ext
-    }
-    try {
-        await s3.headObject(params).promise()
-        console.log("File Found in S3")
+        Bucket: bucketAws,
+        Delete: {
+            Objects:Archs
+        }
+
+        }
         try {
-            await s3.deleteObject(params).promise()
+            await s3.deleteObjects(params).promise()
             console.log("file deleted Successfully")
         }
         catch (err) {
-             console.log("ERROR in file Deleting : " + JSON.stringify(err))
+            console.log("ERROR in file Deleting : " + JSON.stringify(err))
         }
-    } catch (err) {
-            console.log("File not Found ERROR : " + err.code)
-    }
 }
+
+
+//      BORRAR VARIOS ARCHIVOS
+async function borrarVarios(Archs,bucket){
+    AWS.config.update({
+        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
+        secretAccessKey: "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",
+        region: "sa-east-1",
+    });
+    const s3 = new AWS.S3();
+    
+    const params = {
+        Bucket: bucket,
+        Delete: {
+            Objects:Archs
+        }
+        
+        }
+        try {
+            await s3.deleteObjects(params).promise()
+            console.log("file deleted Successfully")
+        }
+        catch (err) {
+            console.log("ERROR in file Deleting : " + JSON.stringify(err))
+        }
+}
+
+
+
+router.get('/secure', midleware,(req,res) => {
+    // all secured routes goes here
+    res.send('I am secured...')
+})
+
+router.post('/token',async (req,res) => {
+    var postData = req.body
+    var user = await USERS.findOne({_id:postData.id });
+    if (user.refreshToken==postData.refreshToken) {
+        const user = {
+            "email": postData.email,
+            "name": postData.nombre
+        }
+        const token = jwt.sign(user, config.secret, { expiresIn: config.tokenLife})
+        const response = {
+            "token": token,
+        }
+        // update the token in the list
+        // tokenList[postData.refreshToken].token = token
+        res.status(200).json(response);
+        console.log(response);
+    } else {
+        res.status(404).send('error al generar tokens');
+    }
+});
+
+
 
 router.post("/", async(req, res,next) => {
     // user datos
@@ -96,7 +157,7 @@ router.post("/", async(req, res,next) => {
     userDB.save(async(err, docs) => {
         if (err) {
             //delete file
-            borrar(keyF);
+            borrar([{'Key':keyF}]);
             res.status(300).json(err);
             //console.log(err)
             return;
@@ -135,7 +196,7 @@ router.put("/file", async(req, res, next) => {
             res.status(500).json({msn: "Existen problemas en la base de datos"});
              return;
          }
-         borrar(exkey);
+         borrar([{'Key':exkey}]);
          res.status(200).json(docs);
      });
     return;
@@ -161,19 +222,34 @@ router.post("/login", async(req, res) => {
         res.status(300).json({msn: "la cuenta no esta verificada",res:results});
         return;
       }
+    //      jwt init
 
-      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]}}, (err, docs) => {
+    const person = {
+        "email": results.email,
+        "name": results.nombre
+    }
+    const token = jwt.sign(person, config.secret, { expiresIn: config.tokenLife})
+    const refreshToken = jwt.sign(person, config.refreshTokenSecret, { expiresIn: config.refreshTokenLife})
+    const response = {
+        "status": "Logged in",
+        "token": token,
+        "refreshToken": refreshToken,
+    }
+    //      jwt finish
+
+      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
                  if (err) {
                     console.log("Existen problemas al ingresar tokenFB");
                     return;
                 }
             });
+        
         var likes=await LIKE.findOne({"id_user":results._id});
-        console.log(likes);
+        //console.log(likes);
         if(likes==null){
             likes={'listaLikes':[],'interacciones':[]};
         }
-        res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:likes/*,token:token,id:results[0].id*/});
+        res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:likes,tokens:response});
         return;
   }
   res.status(300).json({msn: "noExiste"});
@@ -225,12 +301,63 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         });
         return;
     }
-    var user=await USERS.find({_id:req.query.id});
-    var imguser=user[0].img_user[0].key;
-    var r = await USERS.remove({_id: req.query.id});
-    borrar(imguser);
-    console.log(imguser);
-    res.status(300).json(r);
+    const producImg=new Array();
+    var productos=await PRODUC.find({'id_user':req.query.id});
+    for (let j = 0; j < productos.length; j++) {
+        var img=productos[j].img_produc;
+        for(var i=0;i<img.length;i++){
+            let aux={
+                Key:img[i].key
+            }
+            producImg.push(aux);
+        }
+    }
+    const propImg=new Array();
+    var propiedad=await PROP.find({'id_user':req.query.id});
+    for (let j = 0; j < propiedad.length; j++) {
+        var img=propiedad[j].img_prop;
+        for(var i=0;i<img.length;i++){
+            let aux={
+                Key:img[i].key
+            }
+            propImg.push(aux);
+        }
+    }
+    const userImg=new Array();
+    PRODUC.remove({'id_user':req.query.id }, function(err,docs) {
+        if (err) {
+            res.status(300  ).json({msn: "Error en eliminar los productos"});
+            return;
+        }
+            if (docs.deletedCount>0) {
+                borrarVarios(producImg,'productofiles');
+            }
+            PROP.remove({'id_user':req.query.id }, async function(err) {
+                if (err) {
+                    res.status(300).json({msn: "Error en eliminar los propiedad"});
+                    return;
+                }
+                if (docs.deletedCount>0) {
+                    borrarVarios(propImg,'propiedadesfiles');
+                }
+                var user=await USERS.findOne({_id:req.query.id});
+                if (user.img_user[0].key!='') {
+                    userImg.push({'Key':user.img_user[0].key});
+                }
+                
+                USERS.remove({ _id: req.query.id }, function(err,docs) {
+                    if (err) {
+                        res.status(300).json({msn: "Error en eliminar al usuario"});
+                        return;
+                    }
+                    //console.log(docs);
+                    if (docs.deletedCount>0) {
+                        borrar(userImg);
+                    }
+                    return res.status(200).json({msn:'usuario eliminado'})
+                });
+            });
+    });
 });
 
  /*        PUT users      */
@@ -238,6 +365,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
  router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
+    console.log(req.body)
     //console.log(bodydata);
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
@@ -254,10 +382,12 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         }
         bodydata.password = sha1(bodydata.password);
     }
-    var user= await USERS.findOne({email:bodydata.email});
+    if (bodydata.email!=null) {
+        var user= await USERS.findOne({email:bodydata.email});
     if (user!=null) {
         res.status(300).json({msn: "Una cuenta ya existe con este correo"});
         return
+    }
     }
     if(bodydata.lastpass!=''){
         var user= await USERS.findOne({_id:params.id});
@@ -267,7 +397,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             return;
         }
     }
-    var allowkeylist = ["zonaHoraria","nombre","apellidos","password","tokenFB","email","fecha_nac"];
+    var allowkeylist = ["estado","zonaHoraria","nombre","apellidos","password","tokenFB","email","fecha_nac","telefono"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -275,17 +405,43 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             updateobjectdata[keys[i]] = bodydata[keys[i]];
         }
     }
-    console.log(updateobjectdata);
+    //console.log(updateobjectdata);
     USERS.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
            console.log(err)
             return;
         } 
-        res.status(200).json(docs);
+        //console.log(bodydata.estado)
+        if (bodydata.estado!=null) {
+            if(bodydata.estado=='verificada')bodydata.estado='vigente'
+            actualizarDemas(params.id,bodydata.estado, res,req);
+        }else{
+            res.status(200).json(docs);
+        }
     });
 
 });
+
+async function actualizarDemas(id_user,estado,res,req) {
+    PROP.updateMany({'id_user':  id_user}, {$set: {'estado':estado}}, (err, docs) => {
+        if (err) {
+            res.status(300).json({msn: "Existen problemas en la base de datos"});
+             return;
+         } 
+         PRODUC.updateMany({'id_user':id_user}, {$set: {'estado':estado}}, (err, docs) => {
+            if (err) {
+                res.status(300).json({msn: "Existen problemas en la base de datos"});
+                 return;
+             } 
+             res.status(200).json({msn:'datos actualizados'});
+         });
+     });
+}
+
+
+
+
 
 /*        GET users por id      */
 
@@ -319,21 +475,33 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "no_existe"});
         return;
     }
-    else{
+    else{    const person = {
+        "email": user.email,
+        "name": user.nombre
+    }
+    const token = jwt.sign(person, config.secret, { expiresIn: config.tokenLife})
+    const refreshToken = jwt.sign(person, config.refreshTokenSecret, { expiresIn: config.refreshTokenLife})
+    const response = {
+        "status": "Logged in",
+        "token": token,
+        "refreshToken": refreshToken,
+    }
+    //      jwt finish
 
         if (params.tkFB!='') {
-            USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tkFB}]}}, (err, docs) => {
-                if (err) {
-                   console.log("Existen problemas al ingresar tokenFB");
-                   return;
-               }
-           });
+            
+      USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+        if (err) {
+           console.log("Existen problemas al ingresar tokenFB");
+           return;
+       }
+   });
         }
         var likes=await LIKE.findOne({"id_user":user._id});
         if(likes==null){
             likes={'listaLikes':[],'interacciones':[]};
         }
-        res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:likes});
+        res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:likes,tokens:response});
         return;
     }
 });
@@ -348,18 +516,30 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
         return;
     }
     else{
-
-        USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]}}, (err, docs) => {
-            if (err) {
-               console.log("Existen problemas al ingresar tokenFB");
-               return;
-           }
-       });
+        const person = {
+            "email": user.email,
+            "name": user.nombre
+        }
+        const token = jwt.sign(person, config.secret, { expiresIn: config.tokenLife})
+        const refreshToken = jwt.sign(person, config.refreshTokenSecret, { expiresIn: config.refreshTokenLife})
+        const response = {
+            "status": "Logged in",
+            "token": token,
+            "refreshToken": refreshToken,
+        }
+        //      jwt finish
+    
+          USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+                     if (err) {
+                        console.log("Existen problemas al ingresar tokenFB");
+                        return;
+                    }
+                });
         var likes=await LIKE.findOne({"id_user":user._id});
         if(likes==null){
             likes={'listaLikes':[],'interacciones':[]};
         }
-        res.status(200).json({res:user,listaLike:likes});
+        res.status(200).json({res:user,listaLike:likes,tokens:response});
         return;
     }
 });
@@ -369,14 +549,20 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
     var params = req.body;
     //console.log(params);
     var usuario=await  USERS.findOne({_id:params.id});
+    var parametro = usuario.estado;
     // console.log(usuario.estado);
     if (usuario==null) {
         res.status(300).json({msn: "El usuario no esta registrado"});
         return
     }
     //console.log(usuario);
-    if(usuario.estado==params.codigo){
-        USERS.updateOne({_id:  params.id}, {$set: {'estado':"verificada"}}, (err, docs) => {
+    var auxiliar={'estado':"verificada"};
+    if (params.tipo!=null&&params.tipo=='password') {
+        parametro=usuario.verificacion;
+        var auxiliar={'verificacion':"pass actualizado"};
+    }
+    if(parametro==params.codigo){
+        USERS.updateOne({_id:  params.id}, {$set: auxiliar}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "error en la base de datos"});
                  return;
@@ -391,11 +577,18 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
 });
 
 router.post("/reverifi", async(req, res, next) => {
+    console.log(req.body)
     var params = req.body;
     var aleatorio = Math.round(Math.random()*999999);
+    var variable={"estado":aleatorio};
+    if (params.parametro!=null&&params.parametro=='password') {
+        console.log('no entro')
+        variable={"verificacion":aleatorio};
+    }
+    
     mailer.enviar_mail(params.email,aleatorio,params.nombre,res);
-    //console.log(aleatorio);
-    USERS.updateOne({_id:  params.id}, {$set: {'estado':aleatorio}}, (err, docs) => {
+    console.log(variable);
+    USERS.updateOne({_id:  params.id}, {$set: variable}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "error en la base de datos"});
                  return;

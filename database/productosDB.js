@@ -35,6 +35,10 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         type: Number,
         default:0
     },
+    denuncias: {
+        type: Number,
+        default:0
+    },
     numVentas: {
         type: Number,
         default:0
@@ -46,6 +50,10 @@ var PRODUC_SCHEMA = new mongoose.Schema({
     categoria: {
         type: String,
         required: [true, "La categoria del producto es nesesaria "]
+    },
+    estado: {
+        type: String,
+        default:''
     },
     comentarios:[{
         nombre:
@@ -64,7 +72,15 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         fecha: {
             type: String,
             default:''
-        }
+        },
+        id_u: {
+            type: String,
+            default:''
+        },
+        estado: {
+            type: String,
+            default:'vigente'
+        },
     },]
 });
 var PRODUC = mongoose.model("productos", PRODUC_SCHEMA);

@@ -37,9 +37,12 @@ for(var i=0;i<listTokens.length;i++){
     // console.log('esto esssss $i');
     // console.log(listTokens[i].tokenFB);
     try {
-        firebase.messaging().sendToDevice(listTokens[i].tokenFB,payload,options);
+        if (listTokens[i]!=null) {
+            firebase.messaging().sendToDevice(listTokens[i].tokenFB,payload,options);
+        }
+        
     } catch (error) {
-        console.log(e);
+        console.log(error);
         return;
     }
 }
