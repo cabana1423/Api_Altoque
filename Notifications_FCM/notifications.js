@@ -66,6 +66,7 @@ router.get("/",/*midleware,*/ (req, res) => {
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
         }
+        // console.log(docs[0].listaNoti)
         res.status(200).json(docs);
         return;
     });

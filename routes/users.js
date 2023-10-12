@@ -9,14 +9,16 @@ var sha1 = require("sha1");
 var jwt=require("jsonwebtoken");
 var USERS = require("../database/usersDB");
 const LIKE = require('../database/likesDB');
-const bucketAws ="usuariosfiles"
+const bucketAws ="usuarios-files"
 const config = require('./config.json')
 var midleware=require("./jsonwebtoken");
 const PRODUC = require('../database/productosDB');
 const PROP = require('../database/propiedadDB');
-
+const firebase=require("../Notifications_FCM/firebaseTokens");
 
 router.use(fileUpload({
+    // useTempFiles:true,
+    tempFileDir:'/tmp',
     limits: { fileSize: 5 * 1024 * 1024 },
 }
 ));
@@ -26,9 +28,9 @@ async function borrar(Archs){
         return;
     }
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "sa-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const s3 = new AWS.S3();
     
@@ -52,9 +54,9 @@ async function borrar(Archs){
 //      BORRAR VARIOS ARCHIVOS
 async function borrarVarios(Archs,bucket){
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "sa-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const s3 = new AWS.S3();
     
@@ -106,8 +108,10 @@ router.post('/token',async (req,res) => {
 
 router.post("/", async(req, res,next) => {
     // user datos
+   
     var obj={};
     var params = req.body;
+    console.log(params.password);
     if (params.password == null) {
         res.status(300).json({msn: "El password es necesario pra continuar con el registro"});
         return;
@@ -133,6 +137,7 @@ router.post("/", async(req, res,next) => {
     var urlF;
     if(req.files && req.files.media){
         const file= req.files.media;
+        console.log(file);
         var verificacion=await verificaionFiles.verificarFile(file);
         if (verificacion=='baneado') {
                 return res.status(300).json({msn:'esta imagen va en contra nuestras politicas'});
@@ -152,12 +157,12 @@ router.post("/", async(req, res,next) => {
     if(params.est==''){
          aleatorio = Math.round(Math.random()*999999);
     obj['estado']=String(aleatorio);}
-    
+    obj['locacion']={coordinates:[req.body.long,req.body.lat]}
     var userDB = new USERS(obj);
     userDB.save(async(err, docs) => {
         if (err) {
             //delete file
-            borrar([{'Key':keyF}]);
+            // borrar([{'Key':keyF}]);
             res.status(300).json(err);
             //console.log(err)
             return;
@@ -236,8 +241,8 @@ router.post("/login", async(req, res) => {
         "refreshToken": refreshToken,
     }
     //      jwt finish
-
-      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+        
+      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [params.tokenFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
                  if (err) {
                     console.log("Existen problemas al ingresar tokenFB");
                     return;
@@ -250,6 +255,7 @@ router.post("/login", async(req, res) => {
             likes={'listaLikes':[],'interacciones':[]};
         }
         res.status(200).json({msn: "Bienvenido: "+results.nombre,res:results,listaLike:likes,tokens:response});
+        firebase.verificarTokens(results.tokensFBS,results.id,res);
         return;
   }
   res.status(300).json({msn: "noExiste"});
@@ -330,7 +336,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             return;
         }
             if (docs.deletedCount>0) {
-                borrarVarios(producImg,'productofiles');
+                borrarVarios(producImg,'producto-files');
             }
             PROP.remove({'id_user':req.query.id }, async function(err) {
                 if (err) {
@@ -338,7 +344,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
                     return;
                 }
                 if (docs.deletedCount>0) {
-                    borrarVarios(propImg,'propiedadesfiles');
+                    borrarVarios(propImg,'propiedades-files');
                 }
                 var user=await USERS.findOne({_id:req.query.id});
                 if (user.img_user[0].key!='') {
@@ -365,10 +371,21 @@ router.delete("/",/*midleware,*/ async(req, res) => {
  router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
-    console.log(req.body)
-    //console.log(bodydata);
+    //  console.log(req.body.documentos)
+    // console.log(bodydata);
+    
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
+        return;
+    }
+    if (bodydata.lat != null&&bodydata.long != null) {
+        actualizarDist(params.id,parseFloat(bodydata.long),parseFloat(bodydata.lat),res);
+        return;
+    //     location={coordinates:[parseFloat(bodydata.long),parseFloat(bodydata.lat)]};
+    //     console.log(location);
+    }
+    if (req.body.documentos!=null) {
+        upDocumentos(params.id,req.body.documentos,res);
         return;
     }
     if(bodydata.password!=null){
@@ -384,12 +401,12 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     }
     if (bodydata.email!=null) {
         var user= await USERS.findOne({email:bodydata.email});
-    if (user!=null) {
-        res.status(300).json({msn: "Una cuenta ya existe con este correo"});
-        return
+        if (user!=null) {
+            res.status(300).json({msn: "Una cuenta ya existe con este correo"});
+            return
+        }
     }
-    }
-    if(bodydata.lastpass!=''){
+    if(bodydata.lastpass!=null&&bodydata.lastpass!=''){
         var user= await USERS.findOne({_id:params.id});
         //console.log(user)
         if(sha1(bodydata.lastpass)!=user.password){
@@ -397,7 +414,9 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             return;
         }
     }
-    var allowkeylist = ["estado","zonaHoraria","nombre","apellidos","password","tokenFB","email","fecha_nac","telefono"];
+    var allowkeylist = ["vehiculo","estado","zonaHoraria","nombre",
+    "apellidos","password","tokenFB","email",
+    "fecha_nac","telefono","ci","direccion",]; 
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -422,6 +441,35 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     });
 
 });
+
+function upDocumentos(id,imagenes,res) {
+    const array = JSON.parse(imagenes);
+    console.log(typeof array)
+    USERS.updateOne({_id:id},
+        {$push: {"documentos":{$each:array}},$set:{"tipo":"SolicitudRepartidor"}}, (err, docs) => {
+        if (err) {
+            console.log(err)
+            res.status(300).json({msn: "Existen problemas al realizar el registro"+err});
+             return;
+         }
+         res.status(200).json({msn:'Solicitud registrada con exito'});
+     });
+
+}
+function actualizarDist(id,long,lat,res) {
+    // console.log(typeof long);
+    USERS.updateOne({ _id: id }, { $set: {'locacion.coordinates': [long,lat] } }, (err, docs) => {
+        if (err) {
+            console.log(err)
+            res.status(300).json({msn: "Existen problemas al realizar el registro"+err});
+             return;
+         }
+         res.status(200).json({msn:'Solicitud registrada con exito'});
+     });
+    
+
+}
+
 
 async function actualizarDemas(id_user,estado,res,req) {
     PROP.updateMany({'id_user':  id_user}, {$set: {'estado':estado}}, (err, docs) => {
@@ -490,7 +538,7 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
 
         if (params.tkFB!='') {
             
-      USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+      USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [params.tkFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
         if (err) {
            console.log("Existen problemas al ingresar tokenFB");
            return;
@@ -502,6 +550,7 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
             likes={'listaLikes':[],'interacciones':[]};
         }
         res.status(200).json({msn:'Bienvenido: '+user.nombre,res:user,listaLike:likes,tokens:response});
+        firebase.verificarTokens(user.tokensFBS,user.id,res);
         return;
     }
 });
@@ -529,10 +578,10 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
         }
         //      jwt finish
     
-          USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [{'tokenFB':params.tokenFB}]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+          USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [params.tokenFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
                      if (err) {
                         console.log("Existen problemas al ingresar tokenFB");
-                        return;
+                        return res.end();
                     }
                 });
         var likes=await LIKE.findOne({"id_user":user._id});

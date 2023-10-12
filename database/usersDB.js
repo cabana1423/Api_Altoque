@@ -21,6 +21,15 @@ var USERSCHEMA = new mongoose.Schema({
         unique:[true, "el correo ingresado ya se encuentra registrado"]
         
     },
+    locacion: {
+        type: {
+            type: String,
+            default: 'Point',
+        },
+        coordinates: {
+            type: [Number]
+        }
+    },
     password: {
         type: String,
         required: [true, "El password es necesario"]
@@ -47,17 +56,15 @@ var USERSCHEMA = new mongoose.Schema({
     }],
     tokensFBS: {
         type:Array,
-        tokenFB:
-        {
-            type: String,
-            required: [true, "El tokenFB es necesario"]
-        }
+        // tokenFB:
+        // {
+        //     type: String,
+        //     required: [true, "El tokenFB es necesario"]
+        // }
     },
     estado: {
         type: String,
-        default:''
-        //required: [true, "Falta la fecha de nacimiento"]
-    },
+        default:''    },
     tipo: {
         type: String,
         default:'normal'
@@ -67,17 +74,7 @@ var USERSCHEMA = new mongoose.Schema({
         type: String,
         default:''
     },
-    estIcons:{
-        mensajeria:
-        {
-            type:String,
-            default: ""
-        },
-        notifi: {
-            type: String,
-            default: ""
-        }
-    },
+
     verificacion: {
         type: String,
         default:''
@@ -86,6 +83,15 @@ var USERSCHEMA = new mongoose.Schema({
         type: String,
         default:''
     },
+    ci: {
+        type: String,
+    },
+    direccion: {
+        type: String,
+    },
+    vehiculo: {
+        type: String,
+    },
     refreshToken: {
         type: String,
         default:''
@@ -93,11 +99,25 @@ var USERSCHEMA = new mongoose.Schema({
     /*limite:{
         type:Number,
         default:0 
+    },*/
+    documentos:{
+        type:Array,
+        tipo:
+        {
+            type:String,
+            required:[true, "el titulo de la imagen es requerida"]
+        },
+        url:
+        {
+            type:String,
+            required:[true, "el titulo de la imagen es requerida"]
+        },
+        key: {
+            type: String,
+            required: [true, "la ruta de la imagen es necesaria"]
+        }
     },
-    tokenFB:{
-        type:String,
-        default:"" ,
-    }*/
 });
+USERSCHEMA.index({ locacion: "2dsphere" });
 var USERS = mongoose.model("users", USERSCHEMA);
 module.exports = USERS;

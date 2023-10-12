@@ -11,8 +11,8 @@ const fs = require('fs');
 //POST     cuentas
 router.post("/", /*midleware,*/ async(req, res) => {
     var obj={};
+    var params=req.body;
     let vecAddVentas= new Array();
-    params=req.body;
     if (req.query.id_u == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
@@ -28,6 +28,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
             "id_p": params.id[i],
             "nombre_p": params.nombre[i],
             "total_p": params.total[i],
+            "cantidad":params.cantidades[i]
           }
             vec.push(productos);
     }
@@ -36,7 +37,12 @@ router.post("/", /*midleware,*/ async(req, res) => {
     obj["nota"]=params.nota;
     obj["id_userPed"]=req.query.id_u;
     obj["id_destino"]=params.id_dest;
+    obj["idTienda"]=params.idTienda;
+    obj["nombreTienda"]=params.nombreTienda;
+    obj['ubicacion']=JSON.parse(params.coord);
+    obj['user']=JSON.parse(params.user);
     var contDB = new CONT(obj);
+    // console.log(contDB);
     contDB.save((err, docs) => {
         if (err) {
             res.status(300).json({msn: "error al registrar cuentas"});
@@ -76,19 +82,33 @@ router.put("/",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["estado"];
+    var cuenta=await CONT.findOne({_id:params.id})
+    if (cuenta.hasOwnProperty('repartidor')) {
+        return res.status(300).json({msn: "El pedido ya fue tomado por un repartidor"});
+    }
+    var allowkeylist = ["estado",'repartidor'];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
         if (allowkeylist.indexOf(keys[i]) > -1) {
-            updateobjectdata[keys[i]] = bodydata[keys[i]];
+            if (keys[i]=='repartidor') {
+                updateobjectdata[keys[i]] = JSON.parse(bodydata[keys[i]]);
+            }else{
+                updateobjectdata[keys[i]] = bodydata[keys[i]];
+            }
         }
     }
     //console.log(updateobjectdata);
+    if (bodydata.estado_rep!=null) {
+        bodydata.estado=bodydata.estado_rep;
+    }
     CONT.updateOne({_id:  params.id}, {$set: updateobjectdata}, (err, docs) => {
        if (err) {
            res.status(500).json({msn: "Existen problemas en la base de datos"});
             return;
+        }
+        if (bodydata.estado_rep=='entregado'||params.idNot==null||params.idNot=='') {
+            return res.status(200).json(docs);
         }
         NOTI.findOneAndUpdate({_id: params.idNot},
             {
@@ -98,12 +118,19 @@ router.put("/",/*midleware,*/ async(req, res) => {
               "arrayFilters": [{ "outer.id_cont": params.id }]
             },(err, docs) => {
                         if (err) {
-                            console.log('error en la bd notificaciones')
+                            console.log('error en la BD notificaciones')
                             return;
                         }
             });
-        res.status(200).json(docs);
-        return;
+            CONT.findOne({_id: params.id}, (err, docs) => {
+                if (err) {
+                  res.status(500).json({msn: "Existen problemas en la base de datos"});
+                  return;
+                }
+                // console.log(docs)
+                res.status(200).json(docs);
+                return;
+            });
     });
 });
 
@@ -114,13 +141,25 @@ router.get("/",/*midleware,*/ (req, res) => {
     var params= req.query;
     var select="";
     var order = {};
+    if(params.id_Uadm!=null){
+        filter={ 'id_destino': params.id_Uadm };
+    }
+    if(params.id_cont!=null){
+        filter={ _id: params.id_cont };
+    }
+    if(params.id_adm!=null){
+        filter={ 'idTienda': params.id_adm };
+    }
+    if(params.id_rep!=null){
+        filter={ 'repartidor.id': params.id_rep };
+    }
     if(params.id_u!=null){
         var expresion =new RegExp(params.id_u);
-        filter["id_user"]=expresion;
+        filter["id_userPed"]=expresion;
     }
-    if(params.filters!=null){
-        select=params.filters.replace(/,/g, " ");
-    }
+    // if(params.filters!=null){
+    //     select=params.filters.replace(/,/g, " ");
+    // }
     if (params.order != null) {
         var data = params.order.split(",");
         var number = parseInt(data[1]);
@@ -136,6 +175,7 @@ router.get("/",/*midleware,*/ (req, res) => {
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
         }
+        // console.log(docs);
         res.status(200).json(docs);
         return;
     });
@@ -166,9 +206,12 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     }
     var propiedad=await PROP.findOne({_id:params.idT});
+    if (propiedad==null) {
+        res.status(300).json({msn: "Error al mostrar datos"});
+    }
     //console.log(propiedad);
     
-    var cuent= CONT.findOne({_id:params.id});
+    var cuent= CONT.findOne({_id:params.id}).sort({ fecha_reg: -1 });
     cuent.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
@@ -178,5 +221,41 @@ router.get("/id",/*midleware,*/ async(req, res) => {
         return;
     });
 });
+
+router.get("/id_not",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    //console.log(params);
+    if (params.id_u == null) {
+        res.status(300).json({msn: "faltan parametros necesarios"});
+        return;
+    }
+    const  notificacion= await NOTI.findOne({'id_user':params.id_u});
+    if (notificacion==null) {
+        return res.status(300).json({msn: "Error en la coneccion del servidor"});
+    }
+    // console.log(notificacion);
+    return res.status(200).json({id:notificacion._id});
+});
+router.get("/verificar",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    //console.log(params);
+    if (params.id_u == null) {
+        res.status(300).json({msn: "faltan parametros necesarios"});
+        return;
+    }
+    CONT.find({
+        'repartidor.id': params.id_u,
+        'repartidor.estado': 'no entregada',
+        'estado': 'enviado'
+      }, (error, documentos) => {
+        if (error) {
+            return res.status(300).json({msn: "Error en la coneccion del servidor"});
+        } 
+        return res.status(200).json(documentos);
+      });
+});
+
 
 module.exports = router;

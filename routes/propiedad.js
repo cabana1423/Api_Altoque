@@ -7,18 +7,20 @@ var AWS = require('aws-sdk');
 var PROP = require("../database/propiedadDB");
 var PRODUC = require("../database/productosDB");
 var USERS = require("../database/usersDB");
-const   bucketAws ="propiedadesfiles"
+const   bucketAws ="propiedades-files"
 //var midleware=require("./midleware");
 router.use(fileUpload({
+    // useTempFiles:true,
+    tempFileDir:'/tmp',
     limits: { fileSize: 1 * 1024 * 1024 },
 }
 ));
 
 async function borrar(Archs){
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "sa-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const s3 = new AWS.S3();
     
@@ -39,9 +41,9 @@ async function borrar(Archs){
 
 async function borrarVarios(Archs,bucket){
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "sa-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const s3 = new AWS.S3();
     
@@ -367,10 +369,11 @@ router.delete("/",/*midleware,*/ async(req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var user=await USERS.findOne({_id:req.query.id_u});
-        if (user.estado!='verificada') {
-           return res.status(300).json({msn: "el usuario de esta propiedad esta suspendido no puede realizar esta modificacion"});
-        }
+    var user=req.query.id_u!=null?await USERS.findOne({_id:req.query.id_u}):null;
+    console.log(user);
+    if (user!=null&&user.estado!='verificada') {
+        return res.status(300).json({msn: "el usuario de esta propiedad esta suspendido no puede realizar esta modificacion"});
+    }
     var allowkeylist = ["nombre","nit","propietario","telefono","estado",'entregas'];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};

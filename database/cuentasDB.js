@@ -11,6 +11,9 @@ var CUENTASCHEMA = new mongoose.Schema({
                 type:String,
                 required:[true, "el id del producto es requerida"]
         },
+        cantidad:{
+            type:String,
+        },
         nombre_p:
         {
                 type:String,
@@ -34,16 +37,31 @@ var CUENTASCHEMA = new mongoose.Schema({
         type: String,
         default:""
     },
-    /*hubicacion:[{
-        lat: {
-            type: String, 
-            required: [true, "falta log"]
+    nombreTienda: {
+        type: String,
+    },
+    ubicacion:{
+        lon_u: {
+            type: Number, 
         },
-        lon: {
-            type: String, 
-            required: [true, "falta lat"]
+        lat_u: {
+            type: Number, 
+        },
+        lon_t: {
+            type: Number, 
+        },
+        lat_t: {
+            type: Number, 
         }
-    }],*/
+    },
+    user:{
+        nombre:{
+            type:String,
+        },
+        url:{
+            type:String,
+        },
+    },
     id_userPed: {
         type: String,
         required: [true, "el usuario que realiza el pedido es necesario"]
@@ -52,6 +70,24 @@ var CUENTASCHEMA = new mongoose.Schema({
         type: String,
         required: [true, "el usuario que rcibio el pedido es necesario"]
     },
+    idTienda: {
+        type: String,
+        required: [true, "la tienda que recibio el pedido es necesario"]
+    },
+    repartidor:{
+        id:{
+            type:String,
+        },
+        nombre:{
+            type:String,
+        },
+        estado:{
+            type:String,
+        },
+        tokenFcm:{
+            type:String,
+        },
+    }
     // clave: {
     //     type: String,
     //     required: [true, "el usuario que realiza el pedido es necesario"]

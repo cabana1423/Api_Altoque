@@ -11,19 +11,21 @@ var sha1 = require("sha1");
 const fs = require('fs');
 const { arch } = require("os");
 const { verificarFile } = require("../services/verificar.service");
-const bucketAws ="productofiles"
+const bucketAws ="producto-files"
 var midleware=require("./jsonwebtoken");
 
 router.use(fileUpload({
+    // useTempFiles:true,
+    tempFileDir:'/tmp',
     limits: { fileSize: 10 * 1024 * 1024 },
 }
 ));
 
 async function borrar(Archs){
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "sa-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const s3 = new AWS.S3();
     
@@ -199,7 +201,7 @@ router.post("/deleteimg", /*midleware,*/ async(req, res) => {
 
 
 /*        GET prod general      */
-router.get("/",midleware, (req, res) => {
+router.get("/",/*midleware,*/ (req, res) => {
     var filter={};
     filter["estado"]='vigente';
     var params= req.query;

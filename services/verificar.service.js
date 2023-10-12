@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
 
     AWS.config.update({
-        accessKeyId: "AKIAZNICKCXYYPV6L4WA",
-        secretAccessKey: "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",
-        region: "us-east-1",
+        accessKeyId: "AKIAT7B3USE2DARGPK5A",
+        secretAccessKey: "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",
+        region: "us-east-2",
     });
     const rekognition = new AWS.Rekognition();
 
@@ -19,7 +19,7 @@ async function verificarFile(file){
     const resultado = await new Promise((resolve, reject) => {
         rekognition.detectModerationLabels(params, (err, data) => err == null ? resolve(data) : reject(err));
     });
-    //console.log(resultado);
+    // console.log(resultado);
     if(resultado.ModerationLabels.length>0)
     {
         switch (resultado.ModerationLabels[0].Name) {
@@ -29,6 +29,12 @@ async function verificarFile(file){
                  return baneado;
             }
             break;
+        case 'Nudity':
+                if (parseFloat(resultado.ModerationLabels[1].Confidence)>96.8) {
+                    baneado='baneado';
+                    return baneado;
+                }
+                break;
         case 'Weapons':
                 if (parseFloat(resultado.ModerationLabels[0].Confidence)>50) {
                     baneado='baneado';
@@ -53,12 +59,24 @@ async function verificarFile(file){
                     return baneado;
                 }
                 break;
+        case 'Sexual Activity':
+            if (parseFloat(resultado.ModerationLabels[1].Confidence)>80) {
+                baneado='baneado';
+                return baneado;
+            }
+            break;
         default:
-                ;
+                break;
         }
-    console.log('no entra aqui');
+    // console.log('no entra aqui');
     if (resultado.ModerationLabels.length>1){
         switch (resultado.ModerationLabels[1].Name) {
+            case 'Explicit Nudity':
+                        if (parseFloat(resultado.ModerationLabels[0].Confidence)>97.1) {
+                             baneado='baneado';
+                             return baneado;
+                        }
+                        break;
             case 'Sexual Activity':
                 if (parseFloat(resultado.ModerationLabels[1].Confidence)>80) {
                     baneado='baneado';
@@ -89,7 +107,7 @@ async function verificarFile(file){
                         baneado='baneado';
                         return baneado;
                     }
-                    break;   
+                    break;
             default:
                 break;
         }
