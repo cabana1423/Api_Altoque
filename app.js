@@ -143,7 +143,7 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-var port = 8080;
+var port = 8000;
 server.listen(port,"0.0.0.0",()=>{
   console.log("servidor socket iniciado");
 });
