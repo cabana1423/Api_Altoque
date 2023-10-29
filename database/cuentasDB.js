@@ -87,7 +87,10 @@ var CUENTASCHEMA = new mongoose.Schema({
         tokenFcm:{
             type:String,
         },
-    }
+    },
+    tipoDePago: {
+        type: String,
+    },
     // clave: {
     //     type: String,
     //     required: [true, "el usuario que realiza el pedido es necesario"]

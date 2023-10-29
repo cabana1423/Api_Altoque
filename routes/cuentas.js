@@ -35,6 +35,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     obj["productos"]=vec;
     obj["TOTALP"]=params.totalcont;
     obj["nota"]=params.nota;
+    obj["tipoDePago"]=params.tipoDePago;
     obj["id_userPed"]=req.query.id_u;
     obj["id_destino"]=params.id_dest;
     obj["idTienda"]=params.idTienda;
@@ -78,6 +79,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
 router.put("/",/*midleware,*/ async(req, res) => {
     var params = req.query;
     var bodydata = req.body;
+    console.log(req.body)
     if (params.id == null) {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
