@@ -23,7 +23,8 @@ var CUENTASCHEMA = new mongoose.Schema({
         {
                 type:String,
                 required:[true,"el precio total es requerida"]
-        }
+        },
+        
     },
     TOTALP: {
         type: Number,
@@ -89,7 +90,12 @@ var CUENTASCHEMA = new mongoose.Schema({
         },
     },
     tipoDePago: {
-        type: String,
+        tipo:{
+            type:String,
+        },
+        cuenta:{
+            type:String,
+        },
     },
     // clave: {
     //     type: String,

@@ -274,7 +274,7 @@ router.get("/",/*midleware,*/ (req, res) => {
         res.status(300).json({msn: "El parámetro ID es necesario"});
         return;
     }
-    var allowkeylist = ["nombre","precio","descripcion","estado"];
+    var allowkeylist = ["nombre","precio","descripcion","estado","comision"];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {

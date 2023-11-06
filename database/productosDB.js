@@ -8,6 +8,10 @@ var PRODUC_SCHEMA = new mongoose.Schema({
         type: String,
         required: [true, "El precio es necesaria"]
     },
+    comision: {
+        type: String,
+        required: [true, "La comision es necesaria"]
+    },
     descripcion: {
         type: String,
     },
