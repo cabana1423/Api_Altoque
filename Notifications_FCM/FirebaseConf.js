@@ -120,7 +120,7 @@ router.post("/notRep", /*midleware,*/async(req, res) =>  {
 router.post("/sendRep", /*midleware,*/async(req, res) =>  {
     
     var tienda=await PROP.findOne({_id:req.body.id_tienda});
-    // console.log(tienda.location.coordinates[0]);
+    console.log(req.body.datos);
     var result;
     var params= req.query; 
     var distan=9000
@@ -128,9 +128,9 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
        distan=params.dist
         console.log(distan);
     }
-    var dist=USERS.find(
+    var dist= await USERS.find(
     {
-        'tipo':'Repartidor',
+        'tipo':'repartidor',
         locacion: {
          $near: {
           $maxDistance: distan,
@@ -142,6 +142,7 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
         }
        },'tokensFBS'
        );
+
     dist.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: err});
@@ -152,6 +153,7 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
         result = tokens.flat().reduce((acc, curr) => acc.concat(curr), []);
          console.log(result);
          if (result.length!=[]) {
+            console.log(result)
             sendFMC(result)
          }
          
