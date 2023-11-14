@@ -123,7 +123,7 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
     // console.log(req.body.datos);
     var result;
     var params= req.query; 
-    var distan=9000
+    var distan=8000
     if(params.dist!=null){
        distan=params.dist
         // console.log(distan);
@@ -142,13 +142,14 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
         }
        },'tokensFBS'
        );
-
+    //    console.log(dist);
     dist.exec((err, docs)=>{
         if(err){
             res.status(500).json({msn: err});
             console.log(err);
             return;
         }
+        // console.log(docs);
         const tokens = docs.map(val => val.tokensFBS);
         result = tokens.flat().reduce((acc, curr) => acc.concat(curr), []);
         //  console.log(result);

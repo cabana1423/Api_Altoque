@@ -242,7 +242,7 @@ router.post("/login", async(req, res) => {
     }
     //      jwt finish
         
-      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': [params.tokenFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+      USERS.update({_id: results.id}, {$addToSet: {'tokensFBS': params.tokenFB},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
                  if (err) {
                     console.log("Existen problemas al ingresar tokenFB");
                     return;
@@ -538,7 +538,7 @@ router.get("/social_login",/*midleware,*/ async(req, res) => {
 
         if (params.tkFB!='') {
             
-      USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [params.tkFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+      USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': params.tkFB},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
         if (err) {
            console.log("Existen problemas al ingresar tokenFB");
            return;
@@ -578,7 +578,7 @@ router.post("/compStorage",/*midleware,*/ async(req, res) => {
         }
         //      jwt finish
     
-          USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': [params.tokenFB]},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
+          USERS.update({_id: user.id}, {$addToSet: {'tokensFBS': params.tokenFB},$set: {'refreshToken':response.refreshToken}}, (err, docs) => {
                      if (err) {
                         console.log("Existen problemas al ingresar tokenFB");
                         return res.end();
@@ -650,7 +650,7 @@ router.post("/reverifi", async(req, res, next) => {
 router.post("/delToken", async(req, res, next) => {
     var params = req.body;
     console.log(params);
-    USERS.updateOne({_id:  params.id}, {$pull: {'tokensFBS':{'tokenFB':params.tokenFB}}}, (err, docs) => {
+    USERS.updateOne({_id:  params.id}, {$pull: {'tokensFBS':params.tokenFB}}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "error en la base de datos"});
                  return;
