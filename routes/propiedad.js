@@ -69,7 +69,6 @@ router.post("/", /*midleware,*/ async(req, res) => {
     var params = req.query;
     var obj={};
     obj = req.body;
-    var pr=req.body;
     if (params.id == null) {
         res.status(300).json({msn: "El id usuario es necesario"});
              return;
@@ -436,13 +435,18 @@ router.get("/id",/*midleware,*/ async(req, res) => {
 router.get("/dist",/*midleware,*/(req, res) => {
     //var obj={}
     var params= req.query; 
-    var distan=9000
+    var distan=8000
     if(params.dist!=null){
        distan=params.dist
         console.log(distan);
     }
+    var palabra=params.pal.trim();
+    const searchArray = palabra.split(' ').map(word => new RegExp(word, 'i'));
+
     var dist=PROP.find(
-    {"nombre":RegExp(params.pal),'estado':'vigente',
+    {$and: [
+        { $or: [{ nombre: { $in: searchArray } }, { tipo: { $in: searchArray } }] },
+      ],'estado':'vigente',
         location: {
          $near: {
           $maxDistance: distan,

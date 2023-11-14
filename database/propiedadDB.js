@@ -57,6 +57,9 @@ var PROP_SCHEMA = new mongoose.Schema({
             type: String,
             default:"deshabilitado"
         },
+        tipo: {
+            type: String,
+        },
         denuncias: {
             type: Number,
             default:0
