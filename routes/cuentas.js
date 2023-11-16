@@ -20,6 +20,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     params.nombre=params.nombre.split(',');
     params.id=params.id.split(',');
     params.total=params.total.split(',');
+    params.cantidades=params.cantidades.split(',');
     let vec= new Array();
     for(var i=0;i<params.nombre.length;i++)
     {
@@ -257,6 +258,31 @@ router.get("/verificar",/*midleware,*/ async(req, res) => {
         } 
         return res.status(200).json(documentos);
       });
+});
+
+router.get("/ordenarFecha",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    //console.log(params);
+    if (params.idProp == null) {
+        res.status(300).json({msn: "faltan parametros necesarios"});
+        return;
+    }
+    var fechaInicial = new Date ("2023-11-01");
+
+        CONT.aggregate([
+            { $match: { fecha_reg: { $gte: fechaInicial }, idTienda: params.idProp } },
+            { $addFields: { semana: { $week: "$fecha_reg" } } },
+            { $group: { _id: "$semana", documentos: { $push: "$$ROOT" } } },
+            { $sort: { _id: 1 } }
+          ]).exec((err, resultados) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        // console.log(resultados);
+        return res.status(200).json(resultados);
+    });
 });
 
 
