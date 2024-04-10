@@ -436,7 +436,9 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             if(bodydata.estado=='verificada')bodydata.estado='vigente'
             actualizarDemas(params.id,bodydata.estado, res,req);
         }else{
-            res.status(200).json(docs);
+            console.log('actualizado')
+            res.status(200).json({msn:"actualizado"});
+            
         }
     });
 
@@ -452,7 +454,9 @@ function upDocumentos(id,imagenes,res) {
             res.status(300).json({msn: "Existen problemas al realizar el registro"+err});
              return;
          }
+         console.log('actualizado 1')
          res.status(200).json({msn:'Solicitud registrada con exito'});
+         
      });
 
 }
@@ -464,6 +468,7 @@ function actualizarDist(id,long,lat,res) {
             res.status(300).json({msn: "Existen problemas al realizar el registro"+err});
              return;
          }
+         console.log('actualizado 2')
          res.status(200).json({msn:'Solicitud registrada con exito'});
      });
     
@@ -482,7 +487,7 @@ async function actualizarDemas(id_user,estado,res,req) {
                 res.status(300).json({msn: "Existen problemas en la base de datos"});
                  return;
              } 
-             res.status(200).json({msn:'datos actualizados'});
+             res.status(200).json({msn:'actualizado'});
          });
      });
 }
@@ -512,7 +517,7 @@ router.get("/id",/*midleware,*/ async(req, res) => {
 });
 /**         LOGIN SOCIAL */
 router.get("/social_login",/*midleware,*/ async(req, res) => {
-    console.log(req.query);
+    // console.log(req.query);
     var params= req.query;
     if (params.email == null) {
         res.status(300).json({msn: "El parámetro email es necesario"});
@@ -649,7 +654,7 @@ router.post("/reverifi", async(req, res, next) => {
 
 router.post("/delToken", async(req, res, next) => {
     var params = req.body;
-    console.log(params);
+    // console.log(params);
     USERS.updateOne({_id:  params.id}, {$pull: {'tokensFBS':params.tokenFB}}, (err, docs) => {
             if (err) {
                 res.status(500).json({msn: "error en la base de datos"});

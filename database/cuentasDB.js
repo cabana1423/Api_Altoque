@@ -88,6 +88,9 @@ var CUENTASCHEMA = new mongoose.Schema({
         tokenFcm:{
             type:String,
         },
+        cuenta:{
+            type:String,
+        },
     },
     tipoDePago: {
         tipo:{

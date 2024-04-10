@@ -64,6 +64,9 @@ var PROP_SCHEMA = new mongoose.Schema({
             type: Number,
             default:0
         },
+        horario: {
+            type:String,
+        },
 });
 PROP_SCHEMA.index({ location: "2dsphere" });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);

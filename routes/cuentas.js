@@ -285,5 +285,30 @@ router.get("/ordenarFecha",/*midleware,*/ async(req, res) => {
     });
 });
 
+router.get("/ordFechaRepa",/*midleware,*/ async(req, res) => {
+
+    var params= req.query;
+    //console.log(params);
+    if (params.idRep == null) {
+        res.status(300).json({msn: "faltan parametros necesarios"});
+        return;
+    }
+    var fechaInicial = new Date ("2023-11-01");
+
+        CONT.aggregate([
+            { $match: { fecha_reg: { $gte: fechaInicial }, "repartidor.id": params.idRep } },
+            { $addFields: { semana: { $week: "$fecha_reg" } } },
+            { $group: { _id: "$semana", documentos: { $push: "$$ROOT" } } },
+            { $sort: { _id: 1 } }
+          ]).exec((err, resultados) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        // console.log(resultados);
+        return res.status(200).json(resultados);
+    });
+});
+
 
 module.exports = router;

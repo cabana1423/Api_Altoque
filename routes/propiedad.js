@@ -373,7 +373,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     if (user!=null&&user.estado!='verificada') {
         return res.status(300).json({msn: "el usuario de esta propiedad esta suspendido no puede realizar esta modificacion"});
     }
-    var allowkeylist = ["nombre","nit","propietario","telefono","estado",'entregas'];
+    var allowkeylist = ["nombre","nit","propietario","telefono","estado",'entregas','horario'];
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {

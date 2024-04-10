@@ -122,8 +122,9 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
     var tienda=await PROP.findOne({_id:req.body.id_tienda});
     // console.log(req.body.datos);
     var result;
+    var ids;
     var params= req.query; 
-    var distan=8000
+    var distan=7000
     if(params.dist!=null){
        distan=params.dist
         // console.log(distan);
@@ -152,15 +153,17 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
         // console.log(docs);
         const tokens = docs.map(val => val.tokensFBS);
         result = tokens.flat().reduce((acc, curr) => acc.concat(curr), []);
-        //  console.log(result);
+        const ides= docs.map(val => val._id);
+        ids=ides.flat().reduce((acc, curr) => acc.concat(curr), []);
+        console.log(ids);
          if (result.length!=[]) {
             // console.log(result)
-            sendFMC(result)
+            sendFMC(result,ids)
          }
          
         res.end();
     });
-    function sendFMC(result) {
+    function sendFMC(result,ids) {
         const payload={
             notification:{
                 title:req.body.title,
@@ -178,6 +181,9 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
     
         try {
             firebase.enviarMensaje(result,payload,options);
+            for (let i = 0; i < ids.length; i++) {
+                postRepart(ids[i],req.body.datos,'repartidor','Sin Atender','talvez pueda interesarte \n ¿Quieres tomarla?',req,res);
+            }
         } catch (error) {
             console.log(error);
             return;
@@ -185,6 +191,45 @@ router.post("/sendRep", /*midleware,*/async(req, res) =>  {
     }
     
 });
+
+async function postRepart(id,datos,tipo,estado,cuerpo,req,res) {
+    // console.log('REGISTREADO NOT');
+    var obj={};
+    var body=JSON.parse(datos);
+    var aux=await NOTIF.findOne({"id_user":id});
+    //console.log(aux);
+    if(aux!=null){
+        addNotiRep(body.id_tienda,id,body.title,cuerpo,body.time,tipo,body.url,body.id_cont,estado,req,res);
+        return;
+    }
+    obj["id_user"]=id
+    obj["listaNoti"]={'id_tienda':body.id_tienda,'title':body.title,'body':cuerpo,'time':body.time,'tipo':tipo,'url':body.url,'id_cont':body.id_cont,'estado':estado};
+    var notiDb = new NOTIF(obj);
+    notiDb.save((err, docs) => {
+        if (err) {
+            //res.status(300).json(err);
+            console.log(err);
+            return;
+        }
+        res.json(docs);
+        return ;
+    });
+}
+async function addNotiRep(id_tienda,id_user,title,body,time,tipo,url,id_cont,estado,req,res) {
+    //AGREGANDO SOLO UN ELEMENTO
+     //var vec={'title':title,'body':body,'time':time,'tipo':tipo};
+    NOTIF.updateOne({"id_user":id_user}, 
+        {$push: {"listaNoti":{$each:[{'id_tienda':id_tienda,'title':title,'body':body,'time':time,'tipo':tipo,'url':url,'id_cont':id_cont,'estado':estado}]}}}, (err, docs) => {
+            if (err) {
+                // res.status(500).json({msn: "Existen problemas en la base de datos"});
+                console.log('ERROR AL GUARDAR')
+                 return;
+             }
+             console.log('GUARDADO CON EXITO')
+            //  res.status(200).json(docs);
+         });
+        return;
+}
 
 router.post("/fcmOtros", /*midleware,*/async(req, res) =>  {
     var tokens=await USERS.findOne({_id:req.body.id_user});
