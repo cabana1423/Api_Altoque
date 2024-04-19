@@ -34,6 +34,9 @@ var CUENTASCHEMA = new mongoose.Schema({
         type: String,
         default:""
     },
+    time: {
+        type: String,
+    },
     estado: {
         type: String,
         default:""

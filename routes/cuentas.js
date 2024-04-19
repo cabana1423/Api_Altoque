@@ -36,6 +36,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     obj["productos"]=vec;
     obj["TOTALP"]=params.totalcont;
     obj["nota"]=params.nota;
+    obj["time"]=params.time;
     obj["tipoDePago"]={'tipo':params.tipoDePago,'cuenta':params.cuenta};
     obj["id_userPed"]=req.query.id_u;
     obj["id_destino"]=params.id_dest;
