@@ -252,7 +252,10 @@ router.get("/verificar",/*midleware,*/ async(req, res) => {
     CONT.find({
         'repartidor.id': params.id_u,
         'repartidor.estado': 'no entregada',
-        'estado': 'enviado'
+        $or: [
+            { 'estado': 'aceptado' },
+            { 'estado': 'enviado' }
+        ]
       }, (error, documentos) => {
         if (error) {
             return res.status(300).json({msn: "Error en la coneccion del servidor"});
