@@ -163,7 +163,7 @@ router.post("/", async(req, res,next) => {
         if (err) {
             //delete file
             // borrar([{'Key':keyF}]);
-            res.status(300).json(err);
+            res.status(300).json({msn:err});
             //console.log(err)
             return;
         }

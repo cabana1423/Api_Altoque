@@ -199,21 +199,27 @@ async function postRepart(id,datos,tipo,estado,cuerpo,req,res) {
     var aux=await NOTIF.findOne({"id_user":id});
     //console.log(aux);
     if(aux!=null){
-        addNotiRep(body.id_tienda,id,body.title,cuerpo,body.time,tipo,body.url,body.id_cont,estado,req,res);
+      await addNotiRep(body.id_tienda,id,body.title,cuerpo,body.time,tipo,body.url,body.id_cont,estado,req,res);
         return;
     }
     obj["id_user"]=id
     obj["listaNoti"]={'id_tienda':body.id_tienda,'title':body.title,'body':cuerpo,'time':body.time,'tipo':tipo,'url':body.url,'id_cont':body.id_cont,'estado':estado};
     var notiDb = new NOTIF(obj);
-    notiDb.save((err, docs) => {
+    try {
+        notiDb.save((err, docs) => {
         if (err) {
             //res.status(300).json(err);
             console.log(err);
             return;
         }
-        res.json(docs);
+        // res.json(docs);
+        console.log(res.json(docs));
         return ;
     });
+    } catch (error) {
+        console.log("error en envio de docs\n" + error)
+    }
+    
 }
 async function addNotiRep(id_tienda,id_user,title,body,time,tipo,url,id_cont,estado,req,res) {
     //AGREGANDO SOLO UN ELEMENTO
