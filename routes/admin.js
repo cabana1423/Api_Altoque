@@ -39,7 +39,8 @@ router.post("/", async(req, res) => {
     var admin = new ADMIN(obj);
     admin.save((err, docs) => {
         if (err) {
-            res.status(300).json(err);
+            res.status(300).json({msn:err});
+            console.log(err)
             return;
         }
         res.json(docs);

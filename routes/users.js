@@ -24,7 +24,11 @@ router.use(fileUpload({
 ));
 
 async function borrar(Archs){
-    if (Archs[0]['Key']==null) {
+    try {
+        if (Archs[0]['Key']==null||Archs[0]['Key']==undefined) {
+            return;
+        }
+    } catch (error) {
         return;
     }
     AWS.config.update({

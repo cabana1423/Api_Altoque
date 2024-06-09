@@ -213,7 +213,7 @@ async function postRepart(id,datos,tipo,estado,cuerpo,req,res) {
             return;
         }
         // res.json(docs);
-        console.log(res.json(docs));
+        // console.log(res.json(docs));
         return ;
     });
     } catch (error) {
