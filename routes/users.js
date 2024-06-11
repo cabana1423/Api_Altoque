@@ -420,7 +420,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
     }
     var allowkeylist = ["vehiculo","estado","zonaHoraria","nombre",
     "apellidos","password","tokenFB","email",
-    "fecha_nac","telefono","ci","direccion",]; 
+    "fecha_nac","telefono","ci","direccion","tipo"]; 
     var keys = Object.keys(bodydata);
     var updateobjectdata = {};
     for (var i = 0; i < keys.length; i++) {
@@ -441,7 +441,7 @@ router.delete("/",/*midleware,*/ async(req, res) => {
             actualizarDemas(params.id,bodydata.estado, res,req);
         }else{
             console.log('actualizado')
-            res.status(200).json({msn:"actualizado"});
+            res.status(200).json({msn:docs});
             
         }
     });
