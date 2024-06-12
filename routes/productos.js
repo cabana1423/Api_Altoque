@@ -447,7 +447,7 @@ router.post("/coment", /*midleware,*/ async(req, res) => {
     var params=req.body;
     var coment={'nombre':params.nombre,'url':params.url,
     'comentario':params.comentario,'fecha':params.fecha,'id_u':params.id_u};
-    console.log(coment);
+    // console.log(coment);
     PRODUC.updateOne({"_id":req.query.id},
         {$push: {"comentarios":{$each:[coment]}}}, async(err, docs) => {
             if (err) {
@@ -479,6 +479,7 @@ router.get("/interac", /*midleware,*/ async(req, res) => {
     sort({'fecha_reg':-1}).limit(limit);
     }
     producDB.exec((err, docs)=>{
+        docs = docs.sort(() => Math.random() - 0.5);
         if(err){
             res.status(500).json({msn: "Error en la coneccion del servidor"});
             return;
