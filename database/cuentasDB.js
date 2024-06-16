@@ -102,6 +102,9 @@ var CUENTASCHEMA = new mongoose.Schema({
         cuenta:{
             type:String,
         },
+        id_stp:{
+            type:String
+        }
     },
     // clave: {
     //     type: String,

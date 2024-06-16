@@ -6,6 +6,8 @@ var PRODUC = require("../database/productosDB");
 var NOTI = require("../database/notificationsDB");
 var sha1 = require("sha1");
 const fs = require('fs');
+const stripe = require('stripe')('sk_test_51NyMnGIRaH9pIO5zH9DVNkn7DfCuSdkPlyCHZVHkoajJyPyNHQtDMekyWEB9fwF8sitdLLVOi7qxNW6DM6irGKYE00VlTYKTgn');
+
 //var midleware=require("./midleware");
 
 //POST     cuentas
@@ -22,9 +24,11 @@ router.post("/", /*midleware,*/ async(req, res) => {
     params.total=params.total.split(',');
     params.cantidades=params.cantidades.split(',');
     let vec= new Array();
+    var ventas=0;
     for(var i=0;i<params.nombre.length;i++)
     {
         vecAddVentas.push({'id':params.id[i],"numVentas":1});
+        ventas++;
         let productos = {
             "id_p": params.id[i],
             "nombre_p": params.nombre[i],
@@ -37,7 +41,7 @@ router.post("/", /*midleware,*/ async(req, res) => {
     obj["TOTALP"]=params.totalcont;
     obj["nota"]=params.nota;
     obj["time"]=params.time;
-    obj["tipoDePago"]={'tipo':params.tipoDePago,'cuenta':params.cuenta};
+    obj["tipoDePago"]={'tipo':params.tipoDePago,'cuenta':params.cuenta,'id_stp':params.id_stp};
     obj["id_userPed"]=req.query.id_u;
     obj["id_destino"]=params.id_dest;
     obj["idTienda"]=params.idTienda;
@@ -67,10 +71,15 @@ router.post("/", /*midleware,*/ async(req, res) => {
 
           PRODUC.bulkWrite(bulkOps).then((res,err) => {
             if (err) {
-                res.status(300).json({msn: "error al aumentar ventas"});
+                // res.status(300).json({msn: "error al aumentar ventas"});
             return;
             }
-          })
+          });
+          PROP.findOneAndUpdate({_id:params.idTienda}, { $inc: { 'numVentas': ventas } }, { new: true }, function(err, result) {
+            if (err) {
+            } else {
+            }
+        });
         res.status(200).json({id_cont:docs._id});
         return;
     });
@@ -313,6 +322,23 @@ router.get("/ordFechaRepa",/*midleware,*/ async(req, res) => {
         return res.status(200).json(resultados);
     });
 });
+
+router.post("/rembolso", /*midleware,*/ async(req, res) => {
+    console.log(req.body.id_stp)
+    const refund = await stripe.refunds.create({
+    
+    payment_intent: req.body.id_stp,
+    // refund_application_fee:true
+    },
+    // {
+    //     stripeAccount:'pk_test_51NyMnGIRaH9pIO5zYmZiBKDp4rszWewmrvW7C8iUnaJ6Xhimp2QTBR987JfrKnCahHtfch2YGAMmfoov69bQBMDY00wyKWvWoU'
+    // }
+);
+    console.log(refund);
+    return res.end()
+
+});
+
 
 
 module.exports = router;

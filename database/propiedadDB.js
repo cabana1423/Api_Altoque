@@ -67,6 +67,9 @@ var PROP_SCHEMA = new mongoose.Schema({
         horario: {
             type:String,
         },
+        numVentas: {
+            type:Number,
+        },
 });
 PROP_SCHEMA.index({ location: "2dsphere" });
 var PROP = mongoose.model("propiedad", PROP_SCHEMA);
